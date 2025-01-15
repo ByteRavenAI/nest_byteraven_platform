@@ -1,0 +1,201 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+enum ScreeningQuestionTypeEnum {
+  text
+  audio
+  video
+  mcq
+  checkbox
+}
+
+enum SubmissionStatusEnum {
+  incomplete
+  completed
+  qualified
+  disqualified
+}
+
+enum OrganisationMemberStatusEnum {
+  sent
+  accepted
+  rejected
+  left
+}
+
+model PlatformUser {
+  id             String         @id @default(auto()) @map("_id") @db.ObjectId
+  platformUserId String?
+  email          String         @unique
+  createdAt      String
+  firstName      String
+  lastName       String
+  dpUrl          String?        @default("")
+  organisations  Organisation[]
+
+  @@map("platform_users")
+}
+
+model Organisation {
+  id                  String   @id @default(auto()) @map("_id") @db.ObjectId
+  orgId               String?
+  orgName             String
+  orgAlias            String   @unique
+  orgDpUrl            String?  @default("")
+  orgSuperAdmin       String   @db.ObjectId
+  orgAdmins           String[]
+  orgJoinedAt         String
+  orgCountry          String
+  orgCity             String
+  orgState            String
+  orgActive           Boolean
+  orgCreditsBalance   Int      @default(0)
+  userCreditsOnSignUp Int      @default(0)
+  createdAt           String
+  updatedAt           String
+
+  superAdmin PlatformUser @relation(fields: [orgSuperAdmin], references: [id])
+
+  @@map("organisations")
+}
+
+model OrganisationMemberStatus {
+  id                         String                       @id @default(auto()) @map("_id") @db.ObjectId
+  organisationMemberStatusId String?
+  orgId                      String
+  orgAlias                   String
+  platformUserId             String
+  email                      String
+  firstName                  String
+  lastName                   String?
+  dpUrl                      String?
+  status                     OrganisationMemberStatusEnum
+  createdAt                  String
+}
+
+model OrganisationBilling {
+  id                    String                    @id @default(auto()) @map("_id") @db.ObjectId
+  organisationBillingId String?
+  orgId                 String
+  orgAlias              String
+  orgSuperAdminId       String
+  balance               Float
+  currency              String
+  usage                 OrganisationUsage[]
+  transactions          OrganisationTransaction[]
+  lastUpdated           String
+}
+
+type OrganisationTransaction {
+  transactionId String
+  amount        Float
+  currency      String
+  createdAt     String
+  paymentMethod String
+}
+
+type OrganisationUsage {
+  usageType String
+  usageId   String
+  createdAt String
+}
+
+model OrganisationApiKey {
+  id                String @id @default(auto()) @map("_id") @db.ObjectId
+  organisationId    String
+  organisationAlias String
+  apiKey            String
+}
+
+model ScreeningTemplate {
+  id                  String                      @id @default(auto()) @map("_id") @db.ObjectId
+  screeningTemplateId String?
+  orgId               String
+  orgAlias            String
+  title               String                      @default("")
+  description         String                      @default("")
+  prompt              String                      @default("")
+  isStreaming         Boolean                     @default(false)
+  questions           ScreeningTemplateQuestion[]
+  createdAt           String
+  metadata            Json?
+}
+
+type ScreeningTemplateQuestion {
+  index            Int
+  question         String
+  questionAudioUrl String?
+  questionType     ScreeningQuestionTypeEnum @default(audio)
+  questionsOptions String[]
+  correctAnswers   String[]
+}
+
+model ScreeningJob {
+  id                  String   @id @default(auto()) @map("_id") @db.ObjectId
+  screeningJobId      String?
+  orgId               String
+  orgAlias            String
+  screeningTemplateId String
+  title               String
+  jobActive           Boolean  @default(true)
+  jd                  String?
+  upvotes             String[] @default([])
+  createdAt           String
+}
+
+model ScreeningFormSubmission {
+  id                        String                            @id @default(auto()) @map("_id") @db.ObjectId
+  screeningFormSubmissionId String?
+  orgId                     String
+  orgAlias                  String
+  email                     String
+  firstName                 String
+  lastName                  String
+  userId                    String?                           @default("")
+  phoneNumber               String
+  screeningJobId            String
+  chat                      ScreeningFormSubmissionQuestion[]
+  createdAt                 String
+  status                    SubmissionStatusEnum
+  result                    Json?
+  upvotes                   String[]                          @default([])
+  isViewed                  Boolean                           @default(false)
+  isPrivate                 Boolean                           @default(false)
+}
+
+type ScreeningFormSubmissionQuestion {
+  index         Int
+  agent         String?
+  human         String?
+  humanAudioUrl String?
+  answerType    ScreeningQuestionTypeEnum @default(audio)
+}
+
+type ScreeningSubmissionQuestionFeedback {
+  agent    String
+  human    String
+  feedback String?
+}
+
+type ScreeningSubmissionAnalysis {
+  overallScore               Int
+  clarityScore               Int
+  relevanceScore             Int
+  problemSolvingScore        Int
+  collaborationApproachScore Int
+  areasForImprovement        String[]
+  strengths                  String[]
+  chat                       ScreeningSubmissionQuestionFeedback[]
+}
