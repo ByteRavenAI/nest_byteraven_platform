@@ -36,37 +36,32 @@ enum OrganisationMemberStatusEnum {
 }
 
 model PlatformUser {
-  id             String         @id @default(auto()) @map("_id") @db.ObjectId
+  id             String  @id @default(auto()) @map("_id") @db.ObjectId
   platformUserId String?
-  email          String         @unique
+  email          String  @unique
   createdAt      String
   firstName      String
   lastName       String
-  dpUrl          String?        @default("")
-  organisations  Organisation[]
+  dpUrl          String? @default("")
 
   @@map("platform_users")
 }
 
 model Organisation {
-  id                  String   @id @default(auto()) @map("_id") @db.ObjectId
-  orgId               String?
-  orgName             String
-  orgAlias            String   @unique
-  orgDpUrl            String?  @default("")
-  orgSuperAdmin       String   @db.ObjectId
-  orgAdmins           String[]
-  orgJoinedAt         String
-  orgCountry          String
-  orgCity             String
-  orgState            String
-  orgActive           Boolean
-  orgCreditsBalance   Int      @default(0)
-  userCreditsOnSignUp Int      @default(0)
-  createdAt           String
-  updatedAt           String
-
-  superAdmin PlatformUser @relation(fields: [orgSuperAdmin], references: [id])
+  id            String   @id @default(auto()) @map("_id") @db.ObjectId
+  orgId         String?
+  orgName       String
+  orgAlias      String   @unique
+  orgDpUrl      String?  @default("")
+  orgSuperAdmin String
+  orgAdmins     String[]
+  orgJoinedAt   String
+  orgCountry    String
+  orgCity       String
+  orgState      String
+  orgActive     Boolean
+  createdAt     String
+  updatedAt     String
 
   @@map("organisations")
 }
@@ -114,7 +109,7 @@ type OrganisationUsage {
 
 model OrganisationApiKey {
   id                String @id @default(auto()) @map("_id") @db.ObjectId
-  organisationId    String
+  organisationId    String @unique
   organisationAlias String
   apiKey            String
 }

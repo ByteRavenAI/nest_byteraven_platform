@@ -11,7 +11,7 @@ import {
 export class PlatformUserController {
   constructor(private platformUserService: PlatformUserService) {}
 
-  @Post('')
+  @Post()
   async createPlatformUser(@Body() dto: CreatePlatformUserDto) {
     return this.platformUserService.createPlatformUser(dto);
   }
@@ -28,7 +28,6 @@ export class PlatformUserController {
 
   @Get('getAuthToken')
   async getJwtForPlatformUser(@Query() query: GetJwtForPlatformUserDto) {
-    // return this.platformUserService.createPlatformUser(dto);
-    // TODO: Implement this
+    return this.platformUserService.getSignedJwtTokenForUser(query);
   }
 }

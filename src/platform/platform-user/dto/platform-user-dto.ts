@@ -31,4 +31,7 @@ export class GetPlatformUserViaIdDto {
 export class GetJwtForPlatformUserDto {
   @IsString({ message: 'platformUserId is required' })
   platformUserId: string;
+
+  @IsEmail({}, { message: 'A valid email is required' })
+  email: string;
 }

@@ -4,6 +4,6 @@ import { PlatformOrganisationService } from './platform-organisation.service';
 
 @Module({
   controllers: [PlatformOrganisationController],
-  providers: [PlatformOrganisationService]
+  providers: [PlatformOrganisationService],
 })
 export class PlatformOrganisationModule {}
