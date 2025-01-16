@@ -11,7 +11,7 @@ import { PlatformOrganisationModule } from './platform/platform-organisation/pla
     }),
     PrismaModule,
     PlatformUserModule,
-    PlatformOrganisationModule
+    PlatformOrganisationModule,
   ],
 })
 export class AppModule {}
