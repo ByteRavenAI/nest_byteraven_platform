@@ -15,18 +15,22 @@ export class PlatformScreeningTemplatesController {
   @Post()
   @ApiOperation({ summary: 'Create a new Screening Template' })
   async createScreeningTemplate(@Body() dto: CreateScreeningTemplateDto) {
-    return this.platformScreeningTemplatesService.createScreeningTemplate();
+    return this.platformScreeningTemplatesService.createScreeningTemplate(dto);
   }
 
   @Get()
   @ApiOperation({ summary: 'Get all Screening Templates of Organisation' })
   async getScreeningTemplates() {
-    return this.platformScreeningTemplatesService.getScreeningTemplatesOfOrg();
+    return this.platformScreeningTemplatesService.getScreeningTemplatesOfOrg(
+      '', // TODO
+    );
   }
 
   @Post()
   @ApiOperation({ summary: 'Generate Screening Template Questions' })
   async generateScreeningTemplateQuestions() {
-    return this.platformScreeningTemplatesService.generateScreeningTemplateQuestions();
+    return this.platformScreeningTemplatesService.generateScreeningTemplateQuestions(
+      '', // TODO
+    );
   }
 }
