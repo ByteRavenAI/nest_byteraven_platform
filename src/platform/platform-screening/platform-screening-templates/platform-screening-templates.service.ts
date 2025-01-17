@@ -6,12 +6,18 @@ import {
 } from './dto/platform-screening-template-dto';
 import { v4 as uuidv4 } from 'uuid';
 import { LlmService } from 'src/llm/llm.service';
+import { AwsService } from 'src/aws/aws.service';
+
+import { config } from 'process';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class PlatformScreeningTemplatesService {
   constructor(
     private prisma: PrismaService,
     private llmService: LlmService,
+    private awsService: AwsService,
+    private config: ConfigService,
   ) {}
 
   async createScreeningTemplate(dto: CreateScreeningTemplateDto) {
@@ -21,17 +27,18 @@ export class PlatformScreeningTemplatesService {
 
       // generate audio from them & save them in the cloud
       for (let i = 0; i < questions.length; i++) {
-        const audio = await this.llmService.generateAudioFromTextUsingEllevenLabsService(
-          questions[i].question,
-        );
+        const audio =
+          await this.llmService.generateAudioFromTextUsingEllevenLabsService(
+            questions[i].question,
+          );
 
         if (audio != null) {
           const audioFileName = `${uuidv4()}.mp3`;
 
           const uniqueFileName = `organisations/${dto.orgId}/screeningtemplatequestions/${audioFileName}`;
 
-          const audioUrl = await uploadFileToS3Service(
-            configAwsBucketName || '',
+          const audioUrl = await this.awsService.uploadFileToS3Service(
+            this.config.get('AWS_BUCKET_NAME') || '',
             audio,
             uniqueFileName,
           );
@@ -40,30 +47,21 @@ export class PlatformScreeningTemplatesService {
             questions[i].questionAudioUrl = audioUrl.url || '';
           }
 
-          deleteFileService(audio ?? '');
+          // TODO
+          //   deleteFileService(audio ?? '');
         }
       }
 
-      const result = await createScreeningTemplateRepo(
-        screeningTemplate as IScreeningTemplateInterface,
-      );
-      if (result) {
-        res.status(200).json({
-          success: true,
-          data: result,
-        });
-      } else {
-        res.status(500).json({
-          success: false,
-          error: 'Failed to Create Screening Template',
-        });
-      }
-    } catch (error) {
-      
-      res.status(500).json({
-        success: false,
-        error: 'Failed to create Screening Template',
+      const result = await this.prisma.screeningTemplate.create({
+        data: dto,
       });
+
+      return {
+        success: true,
+        message: 'Screening Template created successfully',
+      };
+    } catch (error) {
+      throw new Error('Unable to create screening template');
     }
   }
 

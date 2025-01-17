@@ -4,6 +4,7 @@ import { PlatformUserModule } from './platform/platform-user/platform-user.modul
 import { PrismaModule } from './prisma/prisma.module';
 import { PlatformOrganisationModule } from './platform/platform-organisation/platform-organisation.module';
 import { LlmModule } from './llm/llm.module';
+import { AwsModule } from './aws/aws.module';
 
 @Module({
   imports: [
@@ -14,6 +15,7 @@ import { LlmModule } from './llm/llm.module';
     PlatformUserModule,
     PlatformOrganisationModule,
     LlmModule,
+    AwsModule,
   ],
 })
 export class AppModule {}
