@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import {
   CreatePlatformUserDto,
@@ -15,6 +15,7 @@ export class PlatformUserService {
     private prisma: PrismaService,
     private jwt: JwtService,
     private config: ConfigService,
+    private readonly logger: Logger,
   ) {}
 
   async createPlatformUser(dto: CreatePlatformUserDto) {
@@ -23,6 +24,11 @@ export class PlatformUserService {
         data: dto,
       });
     } catch (error) {
+      this.logger.error(
+        `Unable to create platform user: ${error}`,
+        error.stack,
+        'PlatformUserService/createPlatformUser',
+      );
       throw new Error('Unable to create user');
     }
   }

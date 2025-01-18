@@ -1,4 +1,14 @@
-import { Body, Controller, Get, Post, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpException,
+  Inject,
+  Logger,
+  Post,
+  Query,
+  UseGuards,
+} from '@nestjs/common';
 import { PlatformUserService } from './platform-user.service';
 import {
   CreatePlatformUserDto,
@@ -7,28 +17,41 @@ import {
   GetPlatformUserViaIdDto,
 } from './dto/platform-user-dto';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import { PlatformUserJwtGuard } from '../platform-auth/guard/jwt.guard';
 
 @ApiTags('Platform User')
 @Controller('platform/platformUser')
 export class PlatformUserController {
-  constructor(private platformUserService: PlatformUserService) {}
+  constructor(
+    private platformUserService: PlatformUserService,
+    private readonly logger: Logger,
+  ) {}
 
   @Post()
   @ApiOperation({ summary: 'Create a new Platform User' })
   async createPlatformUser(@Body() dto: CreatePlatformUserDto) {
-    return this.platformUserService.createPlatformUser(dto);
+    const platformUser = await this.platformUserService.createPlatformUser(dto);
+    if (platformUser) return platformUser;
+    else throw new HttpException('Failed to create Platform User', 500);
   }
 
   @Get('get/email')
   @ApiOperation({ summary: 'Get the Platform User by email' })
   async getPlatformUserViaEmail(@Query() query: GetPlatformUserViaEmailDto) {
-    return this.platformUserService.getPlatformUserViaEmail(query);
+    const platformUser =
+      await this.platformUserService.getPlatformUserViaEmail(query);
+    if (platformUser) return platformUser;
+    else throw new HttpException('Platform User not found', 404);
   }
 
   @Get('get/id')
+  @UseGuards(PlatformUserJwtGuard)
   @ApiOperation({ summary: 'Get the Platform User by id' })
   async getPlatformUserViaId(@Query() query: GetPlatformUserViaIdDto) {
-    return this.platformUserService.getPlatformUserViaId(query);
+    const platformUser =
+      await this.platformUserService.getPlatformUserViaId(query);
+    if (platformUser) return platformUser;
+    else throw new HttpException('Platform User not found', 404);
   }
 
   @Get('getAuthToken')
@@ -36,6 +59,9 @@ export class PlatformUserController {
     summary: 'Create & Get a signed JWT token for the Platform User',
   })
   async getJwtForPlatformUser(@Query() query: GetJwtForPlatformUserDto) {
-    return this.platformUserService.getSignedJwtTokenForUser(query);
+    const jwt: string =
+      await this.platformUserService.getSignedJwtTokenForUser(query);
+    if (jwt) return jwt;
+    else throw new HttpException('Failed to create JWT', 500);
   }
 }

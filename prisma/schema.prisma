@@ -68,7 +68,7 @@ model Organisation {
 
 model OrganisationMemberStatus {
   id                         String                       @id @default(auto()) @map("_id") @db.ObjectId
-  organisationMemberStatusId String?
+  organisationMemberStatusId String?                     @unique
   orgId                      String
   orgAlias                   String
   platformUserId             String
@@ -83,7 +83,7 @@ model OrganisationMemberStatus {
 model OrganisationBilling {
   id                    String                    @id @default(auto()) @map("_id") @db.ObjectId
   organisationBillingId String?
-  orgId                 String
+  orgId                 String                    @unique
   orgAlias              String
   orgSuperAdminId       String
   balance               Float
