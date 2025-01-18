@@ -38,7 +38,7 @@ export class PlatformScreeningTemplatesService {
           const uniqueFileName = `organisations/${dto.orgId}/screeningtemplatequestions/${audioFileName}`;
 
           const audioUrl = await this.awsService.uploadFileToS3Service(
-            this.config.get('AWS_BUCKET_NAME') || '',
+            this.config.get('AWS_S3_BUCKET_NAME') || '',
             audio,
             uniqueFileName,
           );

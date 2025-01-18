@@ -14,14 +14,21 @@ import * as fs from 'fs';
 
 @Injectable()
 export class LlmService {
-  constructor(private config: ConfigService) {}
+  constructor(config: ConfigService) {
+    this.configOpenAiApiKey = config.get('OPENAI_API_KEY');
+    this.configOpenAiLlmModel = config.get('OPENAI_LLM_MODEL');
+    this.configEllevenLabsModel = config.get('ELLEVENLABS_MODEL');
+    this.configEllevenLabsApiKey = config.get('ELLEVENLABS_API_KEY');
+    this.configEllevenLabsVoiceId = config.get('ELLEVENLABS_VOICE_ID');
+    this.configDeepgramApiKey = config.get('DEEPGRAM_API_KEY');
+  }
 
-  configOpenAiApiKey = this.config.get('OPENAI_API_KEY');
-  configOpenAiLlmModel = this.config.get('OPENAI_LLM_MODEL');
-  configEllevenLabsModel = this.config.get('ELLEVENLABS_MODEL');
-  configEllevenLabsApiKey = this.config.get('ELLEVENLABS_API_KEY');
-  configEllevenLabsVoiceId = this.config.get('ELLEVENLABS_VOICE_ID');
-  configDeepgramApiKey = this.config.get('DEEPGRAM_API_KEY');
+  configOpenAiApiKey: string;
+  configOpenAiLlmModel: string;
+  configEllevenLabsModel: string;
+  configEllevenLabsApiKey: string;
+  configEllevenLabsVoiceId: string;
+  configDeepgramApiKey: string;
 
   async generateScreeningTemplateQuestionsService(
     jobTitle: string,

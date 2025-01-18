@@ -4,8 +4,8 @@ import { CreateScreeningTemplateDto } from './dto/platform-screening-template-dt
 import { ApiOperation, ApiTags } from '@nestjs/swagger';
 import { PlatformUserJwtGuard } from 'src/platform/platform-auth/guard/jwt.guard';
 
-@UseGuards(PlatformUserJwtGuard)
 @ApiTags('Platform Screening Templates')
+@UseGuards(PlatformUserJwtGuard)
 @Controller('screeningTemplates')
 export class PlatformScreeningTemplatesController {
   constructor(

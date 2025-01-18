@@ -5,6 +5,9 @@ import { PrismaModule } from './prisma/prisma.module';
 import { PlatformOrganisationModule } from './platform/platform-organisation/platform-organisation.module';
 import { LlmModule } from './llm/llm.module';
 import { AwsModule } from './aws/aws.module';
+import { PlatformScreeningJobsModule } from './platform/platform-screening/platform-screening-jobs/platform-screening-jobs.module';
+import { PlatformScreeningTemplatesModule } from './platform/platform-screening/platform-screening-templates/platform-screening-templates.module';
+import { LivekitModule } from './livekit/livekit.module';
 
 @Module({
   imports: [
@@ -14,8 +17,11 @@ import { AwsModule } from './aws/aws.module';
     PrismaModule,
     PlatformUserModule,
     PlatformOrganisationModule,
+    PlatformScreeningJobsModule,
+    PlatformScreeningTemplatesModule,
     LlmModule,
     AwsModule,
+    LivekitModule,
   ],
 })
 export class AppModule {}

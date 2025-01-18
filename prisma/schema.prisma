@@ -111,7 +111,7 @@ model OrganisationApiKey {
   id                String @id @default(auto()) @map("_id") @db.ObjectId
   organisationId    String @unique
   organisationAlias String
-  apiKey            String
+  apiKey            String @unique
 }
 
 model ScreeningTemplate {

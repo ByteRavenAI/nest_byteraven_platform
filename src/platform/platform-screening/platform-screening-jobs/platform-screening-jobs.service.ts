@@ -1,7 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import {
-  CreateScreeningJobDto,
-  ScreeningJobResponseDto,
+  PlatformCreateScreeningJobDto,
+  PlatformScreeningJobResponseDto,
 } from './dto/platform-screening-job-dto';
 import { PrismaService } from 'src/prisma/prisma.service';
 
@@ -10,15 +10,17 @@ export class PlatformScreeningJobService {
   constructor(private prisma: PrismaService) {}
 
   async createScreeningJob(
-    dto: CreateScreeningJobDto,
-  ): Promise<ScreeningJobResponseDto> {
+    dto: PlatformCreateScreeningJobDto,
+  ): Promise<PlatformScreeningJobResponseDto> {
     const screeningJob = await this.prisma.screeningJob.create({
       data: dto,
     });
     return screeningJob;
   }
 
-  async getScreeningJobById(id: string): Promise<ScreeningJobResponseDto> {
+  async getScreeningJobById(
+    id: string,
+  ): Promise<PlatformScreeningJobResponseDto> {
     const screeningJob = await this.prisma.screeningJob.findUnique({
       where: { id },
     });
@@ -28,14 +30,14 @@ export class PlatformScreeningJobService {
     return screeningJob;
   }
 
-  async getScreeningJobsOfOrg(orgId: string): Promise<ScreeningJobResponseDto[]> {
-    const screeningJobs = await this.prisma.screeningJob.findMany(
-      {
-        where: {
-          orgId,
-        },
+  async getScreeningJobsOfOrg(
+    orgId: string,
+  ): Promise<PlatformScreeningJobResponseDto[]> {
+    const screeningJobs = await this.prisma.screeningJob.findMany({
+      where: {
+        orgId,
       },
-    );
+    });
     return screeningJobs;
   }
 }
