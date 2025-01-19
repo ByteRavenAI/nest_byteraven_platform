@@ -1,12 +1,18 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from 'src/prisma/prisma.service';
 import {
   CreatePlatformOrganisationDto,
   GetPlatformOrganisationViaIdDto,
   GetPlatformUserViaAdminIdDto,
+  PlatformOrganisationResponseDto,
+  PlatformOrganisationsListResponseDto,
 } from './dto/platform-organisation-dto';
 import { GetPlatformOrganisationApiKeyDto } from './dto/platform-organisation-apikey-dto';
-import { CreateOrganisationBillingStripePaymentSessionDto } from './dto/platform-organisation-billing-dto';
+import {
+  CreateOrganisationBillingStripePaymentSessionDto,
+  CreatePlatformOrganisationBillingStripeSessionResponseDto,
+  GetOrganisationBillingViaOrgIdResponseDto,
+} from './dto/platform-organisation-billing-dto';
 import { StripeService } from 'src/stripe/stripe.service';
 import {
   OrganisationMemberStatusEnum,
@@ -15,7 +21,9 @@ import {
 } from '@prisma/client';
 import {
   CreateOrganisationMemberStatusDto,
+  GetAllOrganisationMemberStatusOfOrgListResponseDto,
   GetOrganisationMemberStatusOfUser,
+  GetOrganisationMemberStatusResponseDto,
   UpdateOrganisationMemberStatusDto,
 } from './dto/platform-organisation-member-dto';
 
@@ -24,18 +32,33 @@ export class PlatformOrganisationService {
   constructor(
     private prisma: PrismaService,
     private stripeService: StripeService,
+    private readonly logger: Logger,
   ) {}
-  async createOrganisation(dto: CreatePlatformOrganisationDto) {
+  async createOrganisation(
+    dto: CreatePlatformOrganisationDto,
+  ): Promise<boolean> {
+    // TODO - create api key and billing object
     try {
-      return this.prisma.organisation.create({
+      const success = this.prisma.organisation.create({
         data: dto,
       });
+      if (success) {
+        return true;
+      }
+      return false;
     } catch (error) {
+      this.logger.error(
+        `Unable to create organisation: ${error}`,
+        error.stack,
+        'PlatformOrganisationService/createOrganisation',
+      );
       throw new Error('Unable to create organisation');
     }
   }
 
-  async getOrganisationById(query: GetPlatformOrganisationViaIdDto) {
+  async getOrganisationById(
+    query: GetPlatformOrganisationViaIdDto,
+  ): Promise<PlatformOrganisationResponseDto> {
     try {
       const org = await this.prisma.organisation.findUnique({
         where: { id: query.orgId },
@@ -52,11 +75,18 @@ export class PlatformOrganisationService {
         ...org,
       };
     } catch (error) {
+      this.logger.error(
+        `Unable to find organisation: ${error}`,
+        error.stack,
+        'PlatformOrganisationService/getOrganisationById',
+      );
       throw new Error('Unable to find organisation');
     }
   }
 
-  async getOrganisationsByAdminId(query: GetPlatformUserViaAdminIdDto) {
+  async getOrganisationsByAdminId(
+    query: GetPlatformUserViaAdminIdDto,
+  ): Promise<PlatformOrganisationsListResponseDto> {
     try {
       const orgs = await this.prisma.organisation.findMany({
         where: {
@@ -79,18 +109,25 @@ export class PlatformOrganisationService {
           ...orgs[i],
         };
       }
-      return orgs;
+      return {
+        organisations: orgs,
+      };
     } catch (error) {
+      this.logger.error(
+        `Unable to find organisations: ${error}`,
+        error.stack,
+        'PlatformOrganisationService/getOrganisationsByAdminId',
+      );
       throw new Error('Unable to find organisation');
     }
   }
 
   // get the api key for the organisation if organisation exists
 
-  async getOrganisationApiKey(query: GetPlatformOrganisationApiKeyDto) {
+  async getOrganisationApiKey(orgId: string) {
     try {
       const org = await this.prisma.organisation.findUnique({
-        where: { id: query.organisationId },
+        where: { id: orgId },
       });
 
       if (!org) {
@@ -100,7 +137,7 @@ export class PlatformOrganisationService {
       }
 
       const orgApiKey = await this.prisma.organisationApiKey.findUnique({
-        where: { organisationId: query.organisationId },
+        where: { organisationId: orgId },
       });
 
       if (!orgApiKey) {
@@ -111,11 +148,18 @@ export class PlatformOrganisationService {
 
       return orgApiKey;
     } catch (error) {
+      this.logger.error(
+        `Unable to find organisation: ${error}`,
+        error.stack,
+        'PlatformOrganisationService/getOrganisationApiKey',
+      );
       throw new Error('Unable to find organisation');
     }
   }
 
-  async getOrganisationBilling(orgId: string) {
+  async getOrganisationBilling(
+    orgId: string,
+  ): Promise<GetOrganisationBillingViaOrgIdResponseDto> {
     try {
       const org = await this.prisma.organisationBilling.findUnique({
         where: { orgId: orgId },
@@ -129,13 +173,18 @@ export class PlatformOrganisationService {
 
       return org;
     } catch (error) {
+      this.logger.error(
+        `Unable to find organisation billing: ${error}`,
+        error.stack,
+        'PlatformOrganisationService/getOrganisationBilling',
+      );
       throw new Error('Unable to find organisation');
     }
   }
 
   async createOrganisationBillingStripePaymentSession(
     dto: CreateOrganisationBillingStripePaymentSessionDto,
-  ) {
+  ): Promise<CreatePlatformOrganisationBillingStripeSessionResponseDto> {
     try {
       const customerId: string | null =
         await this.stripeService.createOrGetCustomerStripeService(
@@ -158,12 +207,25 @@ export class PlatformOrganisationService {
             stripePaymentSessionId: stripePaymentSessionId,
           };
         } else {
+          this.logger.error(
+            `Payment Session creation failed`,
+            'PlatformOrganisationService/createOrganisationBillingStripePaymentSession',
+          );
           throw new Error('Payment Session creation failed');
         }
       } else {
+        this.logger.error(
+          `Customer creation failed`,
+          'PlatformOrganisationService/createOrganisationBillingStripePaymentSession',
+        );
         throw new Error('Customer creation failed');
       }
     } catch (error) {
+      this.logger.error(
+        `Unable to create organisation billing stripe payment session: ${error}`,
+        error.stack,
+        'PlatformOrganisationService/createOrganisationBillingStripePaymentSession',
+      );
       throw new Error('Internal server error');
     }
   }
@@ -223,6 +285,11 @@ export class PlatformOrganisationService {
         };
       }
     } catch (error) {
+      this.logger.error(
+        `Unable to create organisation billing stripe payment session transaction webhook handler: ${error}`,
+        error.stack,
+        'PlatformOrganisationService/createOrganisationBillingPaymentSessionTransactionWebhookHandler',
+      );
       throw new Error('Internal server error ' + error);
     }
   }
@@ -253,6 +320,11 @@ export class PlatformOrganisationService {
 
       return updatedOrganisationBilling ? true : false;
     } catch (error) {
+      this.logger.error(
+        `Unable to update organisation billing balance: ${error}`,
+        error.stack,
+        'PlatformOrganisationService/updateOrganisationBillingBalance',
+      );
       throw new Error('Unable to update organisation billing balance');
     }
   }
@@ -278,6 +350,11 @@ export class PlatformOrganisationService {
 
       return updatedOrganisationBilling ? true : false;
     } catch (error) {
+      this.logger.error(
+        `Unable to create organisation billing usage: ${error}`,
+        error.stack,
+        'PlatformOrganisationService/createOrganisationBillingUsage',
+      );
       return false;
     }
   }
@@ -301,23 +378,39 @@ export class PlatformOrganisationService {
 
       return updatedOrganisationBilling ? true : false;
     } catch (error) {
+      this.logger.error(
+        `Unable to create organisation billing transaction: ${error}`,
+        error.stack,
+        'PlatformOrganisationService/createOrganisationBillingTransaction',
+      );
       return false;
     }
   }
 
-  async createOrganisationMemberStatus(dto: CreateOrganisationMemberStatusDto) {
+  async createOrganisationMemberStatus(
+    dto: CreateOrganisationMemberStatusDto,
+  ): Promise<boolean> {
     try {
-      return this.prisma.organisationMemberStatus.create({
+      const response = await this.prisma.organisationMemberStatus.create({
         data: dto,
       });
+      if (response) {
+        return true;
+      }
+      return false;
     } catch (error) {
+      this.logger.error(
+        `Unable to create organisation member status: ${error}`,
+        error.stack,
+        'PlatformOrganisationService/createOrganisationMemberStatus',
+      );
       throw new Error('Unable to create organisation member status');
     }
   }
 
   async getOrganisationMemberStatusOfaUser(
     dto: GetOrganisationMemberStatusOfUser,
-  ) {
+  ): Promise<GetOrganisationMemberStatusResponseDto> {
     try {
       const result = await this.prisma.organisationMemberStatus.findFirst({
         where: {
@@ -332,29 +425,53 @@ export class PlatformOrganisationService {
         throw new NotFoundException('Organisation Member Status not found');
       }
     } catch (error) {
+      this.logger.error(
+        `Unable to find organisation member status: ${error}`,
+        error.stack,
+        'PlatformOrganisationService/getOrganisationMemberStatusOfaUser',
+      );
       throw new Error('Unable to find organisation member status');
     }
   }
 
-  async getAllOrganisationMemberStatus(dto: any) {
+  async getAllOrganisationMemberStatus(
+    orgId: string,
+  ): Promise<GetAllOrganisationMemberStatusOfOrgListResponseDto> {
     try {
       // TODO Get Super Admins and Admins both
       const result = await this.prisma.organisationMemberStatus.findMany({
         where: {
-          orgId: dto.orgId,
+          orgId: orgId,
         },
       });
 
       if (result) {
-        return result;
+        const statuses = result.map((status) => {
+          return {
+            orgMemberStatusId: status.organisationMemberStatusId,
+            status: status.status.toString(),
+            ...status,
+          };
+        });
+
+        return {
+          data: statuses,
+        };
       } else {
         throw new NotFoundException('Organisation Member Status not found');
       }
     } catch (error) {
+      this.logger.error(
+        `Unable to find organisation member status: ${error}`,
+        error.stack,
+        'PlatformOrganisationService/getAllOrganisationMemberStatus ',
+      );
       throw new Error('Unable to find organisation member status');
     }
   }
-  async updateOrganisationMemberStatus(dto: UpdateOrganisationMemberStatusDto) {
+  async updateOrganisationMemberStatus(
+    dto: UpdateOrganisationMemberStatusDto,
+  ): Promise<boolean> {
     try {
       const orgMemberStatus: any =
         await this.prisma.organisationMemberStatus.findFirst({
@@ -400,15 +517,21 @@ export class PlatformOrganisationService {
               },
             });
           }
-          return {
-            success: true,
-            message: 'Organisation Member Status updated',
-          };
+          return true;
         } else {
+          this.logger.error(
+            `Error updating Organisation Member Status`,
+            'PlatformOrganisationService/updateOrganisationMemberStatus',
+          );
           throw new Error('Error updating Organisation Member Status');
         }
       }
     } catch (error) {
+      this.logger.error(
+        `Unable to update organisation member status: ${error}`,
+        error.stack,
+        'PlatformOrganisationService/updateOrganisationMemberStatus',
+      );
       throw new Error('Unable to update organisation member status');
     }
   }

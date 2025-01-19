@@ -82,4 +82,65 @@ export class GetPlatformUserViaAdminIdDto {
   adminId: string;
 }
 
+// Response DTOs
 
+export class PlatformOrganisationResponseDto {
+  @IsString()
+  @ApiProperty({ description: 'Organisation ID' })
+  orgId: string;
+
+  @IsString()
+  @ApiProperty({ description: 'Organisation name' })
+  orgName: string;
+
+  @IsString()
+  @ApiProperty({ description: 'Organisation alias' })
+  orgAlias: string;
+
+  @IsString()
+  @ApiProperty({ description: 'Organisation Dp Url' })
+  orgDpUrl: string;
+
+  @IsString()
+  @ApiProperty({ description: 'Organisation Super Admin Id' })
+  orgSuperAdmin: string;
+
+  @IsArray()
+  @IsString({ each: true })
+  @ApiProperty({ description: 'Organisation Admins' })
+  orgAdmins: string[];
+
+  @IsString()
+  @ApiProperty({ description: 'Organisation Joining Date' })
+  orgJoinedAt: string;
+
+  @IsString()
+  @ApiProperty({ description: 'Organisation Country' })
+  orgCountry: string;
+
+  @IsString()
+  @ApiProperty({ description: 'Organisation City' })
+  orgCity: string;
+
+  @IsString()
+  @ApiProperty({ description: 'Organisation State' })
+  orgState: string;
+
+  @IsBoolean()
+  @ApiProperty({ description: 'Organisation Active Status' })
+  orgActive: boolean;
+
+  @IsString()
+  @ApiProperty({ description: 'Creation date in ISO Date Time String' })
+  createdAt: string;
+
+  @IsString()
+  @ApiProperty({ description: 'Last Updated date in ISO Date Time String' })
+  updatedAt: string;
+}
+
+export class PlatformOrganisationsListResponseDto {
+  @IsArray()
+  @ApiProperty({ description: 'List of Organisations' })
+  organisations: PlatformOrganisationResponseDto[];
+}

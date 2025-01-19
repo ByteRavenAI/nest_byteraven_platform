@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Logger, Module } from '@nestjs/common';
 import { PlatformScreeningSubmissionsController } from './platform-screening-submissions.controller';
 import { PlatformScreeningSubmissionsService } from './platform-screening-submissions.service';
 import { LivekitService } from 'src/livekit/livekit.service';
@@ -7,6 +7,6 @@ import { LlmService } from 'src/llm/llm.service';
 
 @Module({
   controllers: [PlatformScreeningSubmissionsController],
-  providers: [PlatformScreeningSubmissionsService, LivekitService, AwsService, LlmService]
+  providers: [PlatformScreeningSubmissionsService, LivekitService, AwsService, LlmService, Logger]
 })
 export class PlatformScreeningSubmissionsModule {}
