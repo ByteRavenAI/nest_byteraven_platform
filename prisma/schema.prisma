@@ -176,6 +176,7 @@ type ScreeningFormSubmissionQuestion {
   human         String?
   humanAudioUrl String?
   answerType    ScreeningQuestionTypeEnum @default(audio)
+  answersGiven  String[]               @default([])
 }
 
 type ScreeningSubmissionQuestionFeedback {

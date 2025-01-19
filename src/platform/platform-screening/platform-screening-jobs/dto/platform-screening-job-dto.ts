@@ -55,11 +55,7 @@ export class PlatformGetScreeningJobByIdDto {
   screeningJobId: string;
 }
 
-export class PlatformScreeningJobsByOrgIdDto {
-  @IsString()
-  @ApiProperty({ description: 'Organisation ID' })
-  orgId: string;
-}
+// Response DTOs
 
 export class PlatformScreeningJobResponseDto {
   @IsOptional()

@@ -1,10 +1,15 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, Logger } from '@nestjs/common';
 import { SubmissionStatusEnum } from '@prisma/client';
 import { PrismaService } from 'src/prisma/prisma.service';
 import {
   CreatePlatformScreeningFormSubmissionDto,
+  CreatePlatformScreeningSubmissionResponseDto,
   GetPlatformScreeningSubmissionsOfOrgDto,
   GetTextFromAudioForPlatformScreeningSubmissionAnswerDto,
+  PlatformScreeningSubmissionCreateStreamRoomResponseDto,
+  PlatformScreeningSubmissionListResponseDto,
+  PlatformScreeningSubmissionResponseDto,
+  PlatformScreeningSubmissionTextFromAudioResponseDto,
   UpdatePlatformScreeningSubmissionChatDto,
 } from './dto/platform-screening-submission-dto';
 
@@ -22,223 +27,283 @@ export class PlatformScreeningSubmissionsService {
     private config: ConfigService,
     private llmService: LlmService,
     private awsService: AwsService,
+    private readonly logger: Logger,
   ) {}
-
-  //   try {
-  //     const screeningSubmission: IScreeningFormSubmission =
-  //       ScreeningFormSubmissionSchema.parse(req.body);
-
-  //     // [MIDDLEWARE] - check organisation balance before creating a submission
-  //     const proceedAhead: boolean = await checkOrganisationBalanceMiddleware(
-  //       screeningSubmission.orgId,
-  //       screeningSubmission.chat.length > 0 // if chat length is less than 0, it is a real time screening
-  //         ? OrganisationBillingUsageType.fixedQuestionsVoiceScreening
-  //         : OrganisationBillingUsageType.realTimeVoiceScreening
-  //     );
-  //     if (proceedAhead) {
-  //       const result: IScreeningFormSubmissionInterface | null =
-  //         await createScreeningSubmissionV2Repo(screeningSubmission);
-  //       if (result) {
-  //         res.status(200).json({
-  //           success: true,
-  //           data: result.screeningFormSubmissionId,
-  //         });
-  //         // [MIDDLEWARE] - update organisation balance after creating a submission
-  //         const screeningJob: IScreeningJobInterface | null =
-  //           await getScreeningJobUsingIdRepo(screeningSubmission.screeningJobId);
-  //         const screeningTemplate: IScreeningTemplateInterface | null =
-  //           await getScreeningTemplateUsingIdRepo(
-  //             screeningJob?.screeningTemplateId || ""
-  //           );
-  //         screeningSubmissionUpdateOrganisationBalanceHelper(
-  //           // screeningSubmission,
-  //           screeningJob,
-  //           screeningTemplate
-  //         );
-
-  //         screeningSubmissionStreakOfUserUpdateHelper(result);
-  //       } else {
-  //         res
-  //           .status(500)
-  //           .json({ error: "Failed to Create Screening Submission" });
-  //       }
-  //     } else {
-  //       logger.error(
-  //         "Insufficient Organsiation Balance or Balance Model not yet created"
-  //       );
-  //       res.status(401).json({
-  //         error:
-  //           "Insufficient Organsiation Balance or Balance Model not yet created",
-  //       });
-  //     }
-  //   } catch (error) {
-  //     logger.error("Error in createScreeningSubmissionController: ", error);
-  //     res.status(500).json({ error: "Failed to create submission" });
-  //   }
-  // };
 
   async createScreeningSubmission(
     dto: CreatePlatformScreeningFormSubmissionDto,
-  ) {
-    // TODO: [MIDDLEWARE] - check organisation balance before creating a submission
+  ): Promise<CreatePlatformScreeningSubmissionResponseDto> {
+    try {
+      // TODO: [MIDDLEWARE] - check organisation balance before creating a submission
 
-    const screeningJob = await this.prisma.screeningJob.findUnique({
-      where: { id: dto.screeningJobId },
-    });
-
-    const screeningTemplate = await this.prisma.screeningTemplate.findUnique({
-      where: { id: screeningJob?.screeningTemplateId },
-    });
-
-    const questionsAndTypes = screeningTemplate?.questions;
-
-    // copy the template questions to submission chat questions
-
-    const chat = dto.chat;
-
-    for (let i = 0; i < questionsAndTypes.length; i++) {
-      chat.push({
-        agent: questionsAndTypes[i].question,
-        human: '',
-        answerType: questionsAndTypes[i].questionType,
-        humanAudioUrl: '',
-        index: i,
-        answersGiven: [],
+      const screeningJob = await this.prisma.screeningJob.findUnique({
+        where: { id: dto.screeningJobId },
       });
-    }
 
-    const screeningSubmission =
-      await this.prisma.screeningFormSubmission.create({
-        data: {
-          orgId: dto.orgId,
-          orgAlias: dto.orgAlias,
-          email: dto.email,
-          firstName: dto.firstName,
-          lastName: dto.lastName,
-          phoneNumber: dto.phoneNumber,
-          screeningJobId: dto.screeningJobId,
-          chat: chat,
-          createdAt: dto.createdAt,
-          status: dto.status,
-          upvotes: dto.upvotes,
-          isViewed: dto.isViewed,
-          isPrivate: dto.isPrivate,
+      const screeningTemplate = await this.prisma.screeningTemplate.findUnique({
+        where: { id: screeningJob?.screeningTemplateId },
+      });
+
+      const questionsAndTypes = screeningTemplate?.questions;
+
+      // copy the template questions to submission chat questions
+
+      const chat = dto.chat;
+
+      for (let i = 0; i < questionsAndTypes.length; i++) {
+        chat.push({
+          agent: questionsAndTypes[i].question,
+          human: '',
+          answerType: questionsAndTypes[i].questionType,
+          humanAudioUrl: '',
+          index: i,
+          answersGiven: [],
+        });
+      }
+
+      const screeningSubmission =
+        await this.prisma.screeningFormSubmission.create({
+          data: {
+            orgId: dto.orgId,
+            orgAlias: dto.orgAlias,
+            email: dto.email,
+            firstName: dto.firstName,
+            lastName: dto.lastName,
+            phoneNumber: dto.phoneNumber,
+            screeningJobId: dto.screeningJobId,
+            chat: chat,
+            createdAt: dto.createdAt,
+            status: dto.status,
+            upvotes: dto.upvotes,
+            isViewed: dto.isViewed,
+            isPrivate: dto.isPrivate,
+          },
+        });
+      return {
+        screeningSubmissionId: screeningSubmission.id,
+      };
+    } catch (error) {
+      this.logger.error(
+        `Unable to create screening submission: ${error}`,
+        error.stack,
+        'PlatformScreeningSubmissionsService/createScreeningSubmission',
+      );
+      throw error;
+    }
+  }
+
+  async getScreeningSubmissionsByJobId(
+    jobId: string,
+  ): Promise<PlatformScreeningSubmissionListResponseDto> {
+    try {
+      const submissions = await this.prisma.screeningFormSubmission.findMany({
+        where: {
+          screeningJobId: jobId,
         },
       });
-    return screeningSubmission;
+
+      const formattedSubmissions = submissions.map((submission) => ({
+        ...submission,
+        screeningSubmissionId: submission.id,
+      }));
+
+      return { screeningSubmissions: formattedSubmissions };
+    } catch (error) {
+      this.logger.error(
+        `Unable to get screening submissions by job id: ${error}`,
+        error.stack,
+        'PlatformScreeningSubmissionsService/getScreeningSubmissionsByJobId',
+      );
+      return { screeningSubmissions: [] };
+    }
   }
 
-  async getScreeningSubmissionsByJobId(jobId: string) {
-    return await this.prisma.screeningFormSubmission.findMany({
-      where: {
-        screeningJobId: jobId,
-      },
-    });
-  }
+  async getScreeningSubmissionById(
+    submissionId: string,
+  ): Promise<PlatformScreeningSubmissionResponseDto> {
+    try {
+      const submission = await this.prisma.screeningFormSubmission.findUnique({
+        where: {
+          id: submissionId,
+        },
+      });
 
-  async getScreeningSubmissionById(submissionId: string) {
-    return await this.prisma.screeningFormSubmission.findUnique({
-      where: {
-        id: submissionId,
-      },
-    });
+      const formattedSubmission = {
+        ...submission,
+        screeningSubmissionId: submission.id,
+      };
+      return formattedSubmission;
+    } catch (error) {
+      this.logger.error(
+        `Unable to get screening submission by id: ${error}`,
+        error.stack,
+        'PlatformScreeningSubmissionsService/getScreeningSubmissionById',
+      );
+      throw error;
+    }
   }
 
   async getScreeningSubmissionUsingEmailOrPhone(
     screeningJobId: string,
     email: string,
     phone: string,
-  ) {
-    return await this.prisma.screeningFormSubmission.findMany({
-      where: {
-        screeningJobId: screeningJobId,
-        email: email,
-        phoneNumber: phone,
-      },
-    });
+  ): Promise<PlatformScreeningSubmissionResponseDto> {
+    try {
+      const submission = await this.prisma.screeningFormSubmission.findFirst({
+        where: {
+          screeningJobId: screeningJobId,
+          email: email,
+          phoneNumber: phone,
+        },
+      });
+
+      const formattedSubmission = {
+        ...submission,
+        screeningSubmissionId: submission.id,
+      };
+      return formattedSubmission;
+    } catch (error) {
+      this.logger.error(
+        `Unable to get screening submission by email or phone: ${error}`,
+        error.stack,
+        'PlatformScreeningSubmissionsService/getScreeningSubmissionUsingEmailOrPhone',
+      );
+      throw error;
+    }
   }
 
-  async updateViewStatus(submissionId: string) {
-    return await this.prisma.screeningFormSubmission.update({
-      where: {
-        id: submissionId,
-      },
-      data: {
-        isViewed: true,
-      },
-    });
+  async updateViewStatus(submissionId: string): Promise<boolean> {
+    try {
+      const response = await this.prisma.screeningFormSubmission.update({
+        where: {
+          id: submissionId,
+        },
+        data: {
+          isViewed: true,
+        },
+      });
+      if (response) {
+        return true;
+      }
+      return false;
+    } catch (error) {
+      this.logger.error(
+        `Unable to update view status of submission: ${error}`,
+        error.stack,
+        'PlatformScreeningSubmissionsService/updateViewStatus',
+      );
+      return false;
+    }
   }
 
   async updateScreeningSubmissionsStatus(
     submissionIds: string[],
     status: SubmissionStatusEnum,
-  ) {
-    return await this.prisma.screeningFormSubmission.updateMany({
-      where: {
-        id: {
-          in: submissionIds,
+  ): Promise<boolean> {
+    try {
+      const response = await this.prisma.screeningFormSubmission.updateMany({
+        where: {
+          id: {
+            in: submissionIds,
+          },
         },
-      },
-      data: {
-        status: status,
-      },
-    });
+        data: {
+          status: status,
+        },
+      });
+      if (response) {
+        return true;
+      }
+      return false;
+    } catch (error) {
+      this.logger.error(
+        `Unable to update screening submission status: ${error}`,
+        error.stack,
+        'PlatformScreeningSubmissionsService/updateScreeningSubmissionsStatus',
+      );
+      return false;
+    }
   }
 
   async getScreenerSubmissionsOfOrg(
     dto: GetPlatformScreeningSubmissionsOfOrgDto,
-  ) {
-    return await this.prisma.screeningFormSubmission.findMany({
-      where: {
-        orgAlias: dto.orgAlias,
-        screeningJobId: dto.jobId,
-        status: dto.status ? dto.status : undefined,
-      },
-      skip: dto.startAfter ? 1 : 0,
-      take: dto.limit ? dto.limit : 10,
-    });
+  ): Promise<PlatformScreeningSubmissionListResponseDto> {
+    try {
+      const submissions = await this.prisma.screeningFormSubmission.findMany({
+        where: {
+          orgAlias: dto.orgAlias,
+          screeningJobId: dto.jobId,
+          status: dto.status ? dto.status : undefined,
+        },
+        skip: dto.startAfter ? 1 : 0,
+        take: dto.limit ? dto.limit : 10,
+      });
+
+      const formattedSubmissions = submissions.map((submission) => ({
+        ...submission,
+        screeningSubmissionId: submission.id,
+      }));
+
+      return { screeningSubmissions: formattedSubmissions };
+    } catch (error) {
+      this.logger.error(
+        `Unable to get screening submissions of org: ${error}`,
+        error.stack,
+        'PlatformScreeningSubmissionsService/getScreenerSubmissionsOfOrg',
+      );
+      return { screeningSubmissions: [] };
+    }
   }
 
   async createScreeningSubmissionStreamingRoom(
     screeningSubmissionId: string,
     screeningJobId: string,
     currDateTimeEpoch: number,
-  ) {
-    const roomName: string = 'screening_' + uuidv4();
-    const participantName: string = 'candidate_' + uuidv4();
+  ): Promise<PlatformScreeningSubmissionCreateStreamRoomResponseDto> {
+    try {
+      const roomName: string = 'screening_' + uuidv4();
+      const participantName: string = 'candidate_' + uuidv4();
 
-    const screeningJob = await this.prisma.screeningJob.findUnique({
-      where: { id: screeningJobId },
-    });
-    const screeningTemplate = await this.prisma.screeningTemplate.findUnique({
-      where: { id: screeningJob?.screeningTemplateId },
-    });
+      const screeningJob = await this.prisma.screeningJob.findUnique({
+        where: { id: screeningJobId },
+      });
+      const screeningTemplate = await this.prisma.screeningTemplate.findUnique({
+        where: { id: screeningJob?.screeningTemplateId },
+      });
 
-    const result =
-      await this.livekitService.createLiveKitParticipantTokenService(
-        roomName,
-        participantName,
-        currDateTimeEpoch,
-        {
-          instructions: screeningTemplate?.prompt || '',
-          openaiApiKey: this.config.get('OPENAI_API_KEY') || '',
-          temperature: 0.7,
-          maxOutputTokens: 1024,
-          turnDetection: {
-            type: 'server_vad',
-            threshold: 0.5,
-            silence_duration_ms: 2000,
+      const result =
+        await this.livekitService.createLiveKitParticipantTokenService(
+          roomName,
+          participantName,
+          currDateTimeEpoch,
+          {
+            instructions: screeningTemplate?.prompt || '',
+            openaiApiKey: this.config.get('OPENAI_API_KEY') || '',
+            temperature: 0.7,
+            maxOutputTokens: 1024,
+            turnDetection: {
+              type: 'server_vad',
+              threshold: 0.5,
+              silence_duration_ms: 2000,
+            },
+            modalities: ['text', 'audio'],
+            voice: 'alloy',
+            screeningJobId: screeningJobId,
+            screeningSubmissionId: screeningSubmissionId,
           },
-          modalities: ['text', 'audio'],
-          voice: 'alloy',
-          screeningJobId: screeningJobId,
-          screeningSubmissionId: screeningSubmissionId,
-        },
+        );
+      return {
+        accessToken: result,
+        url: this.config.get('LIVEKIT_URL') || '',
+      };
+    } catch (error) {
+      this.logger.error(
+        `Unable to create screening submission streaming room: ${error}`,
+        error.stack,
+        'PlatformScreeningSubmissionsService/createScreeningSubmissionStreamingRoom',
       );
-    return {
-      accessToken: result,
-      url: this.config.get('LIVEKIT_URL') || '',
-    };
+      throw error;
+    }
   }
 
   async updateScreeningSubmissionChat(
@@ -264,7 +329,7 @@ export class PlatformScreeningSubmissionsService {
   async getTextFromAudioForPlatformScreeningSubmissionAnswer(
     file: Express.Multer.File,
     dto: GetTextFromAudioForPlatformScreeningSubmissionAnswerDto,
-  ) {
+  ): Promise<PlatformScreeningSubmissionTextFromAudioResponseDto> {
     try {
       const uniqueFileName = `organisations/${dto.orgId}/screeningsubmissions/${dto.screeningSubmissionId}/${dto.index}.${dto.fileType}`;
 

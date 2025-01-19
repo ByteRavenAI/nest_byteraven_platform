@@ -15,8 +15,15 @@ import {
   GetJwtForPlatformUserDto,
   GetPlatformUserViaEmailDto,
   GetPlatformUserViaIdDto,
+  PlatformUserJwtResponseDto,
+  PlatformUserResponseDto,
 } from './dto/platform-user-dto';
-import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
+import {
+  ApiTags,
+  ApiOperation,
+  ApiResponse,
+  ApiBearerAuth,
+} from '@nestjs/swagger';
 import { PlatformUserJwtGuard } from '../platform-auth/guard/jwt.guard';
 
 @ApiTags('Platform User')
@@ -29,15 +36,31 @@ export class PlatformUserController {
 
   @Post()
   @ApiOperation({ summary: 'Create a new Platform User' })
-  async createPlatformUser(@Body() dto: CreatePlatformUserDto) {
+  @ApiResponse({
+    status: 201,
+    description: 'Platform User created successfully',
+    type: PlatformUserResponseDto,
+  })
+  @ApiResponse({ status: 500, description: 'Failed to create Platform User' })
+  async createPlatformUser(
+    @Body() dto: CreatePlatformUserDto,
+  ): Promise<PlatformUserResponseDto> {
     const platformUser = await this.platformUserService.createPlatformUser(dto);
     if (platformUser) return platformUser;
     else throw new HttpException('Failed to create Platform User', 500);
   }
 
   @Get('get/email')
+  @ApiResponse({
+    status: 200,
+    description: 'Platform User found',
+    type: PlatformUserResponseDto,
+  })
+  @ApiResponse({ status: 404, description: 'Platform User not found' })
   @ApiOperation({ summary: 'Get the Platform User by email' })
-  async getPlatformUserViaEmail(@Query() query: GetPlatformUserViaEmailDto) {
+  async getPlatformUserViaEmail(
+    @Query() query: GetPlatformUserViaEmailDto,
+  ): Promise<PlatformUserResponseDto> {
     const platformUser =
       await this.platformUserService.getPlatformUserViaEmail(query);
     if (platformUser) return platformUser;
@@ -47,7 +70,16 @@ export class PlatformUserController {
   @Get('get/id')
   @UseGuards(PlatformUserJwtGuard)
   @ApiOperation({ summary: 'Get the Platform User by id' })
-  async getPlatformUserViaId(@Query() query: GetPlatformUserViaIdDto) {
+  @ApiResponse({
+    status: 200,
+    description: 'Platform User found',
+    type: PlatformUserResponseDto,
+  })
+  @ApiResponse({ status: 404, description: 'Platform User not found' })
+  @ApiBearerAuth()
+  async getPlatformUserViaId(
+    @Query() query: GetPlatformUserViaIdDto,
+  ): Promise<PlatformUserResponseDto> {
     const platformUser =
       await this.platformUserService.getPlatformUserViaId(query);
     if (platformUser) return platformUser;
@@ -58,10 +90,18 @@ export class PlatformUserController {
   @ApiOperation({
     summary: 'Create & Get a signed JWT token for the Platform User',
   })
-  async getJwtForPlatformUser(@Query() query: GetJwtForPlatformUserDto) {
+  @ApiResponse({
+    status: 200,
+    description: 'JWT token created',
+    type: PlatformUserJwtResponseDto,
+  })
+  @ApiResponse({ status: 500, description: 'Failed to create JWT token' })
+  async getJwtForPlatformUser(
+    @Query() query: GetJwtForPlatformUserDto,
+  ): Promise<PlatformUserJwtResponseDto> {
     const jwt: string =
       await this.platformUserService.getSignedJwtTokenForUser(query);
-    if (jwt) return jwt;
+    if (jwt) return { jwt };
     else throw new HttpException('Failed to create JWT', 500);
   }
 }

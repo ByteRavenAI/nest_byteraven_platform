@@ -25,6 +25,14 @@ async function bootstrap() {
     .setDescription('API Documentation for Screening AI')
     .setVersion('1.0')
     .addTag('api/v2') // Optional: Add tags for grouping
+    .addApiKey(
+      { type: 'apiKey', name: 'x-api-key', in: 'header' }, // API Key Auth
+      'apiKeyAuth', // Name of the auth scheme
+    )
+    .addBearerAuth(
+      { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' }, // Bearer Auth
+      'bearerAuth', // Name of the auth scheme
+    )
     .build();
 
   // Create Swagger document

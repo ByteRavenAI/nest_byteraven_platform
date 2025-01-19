@@ -49,5 +49,32 @@ export class GetJwtForPlatformUserDto {
   email: string;
 }
 
-
 // Response DTOs
+
+export class PlatformUserResponseDto {
+  @ApiProperty({ description: 'Platform User ID' })
+  platformUserId: string;
+
+  @ApiProperty({ description: 'Email of the user' })
+  email: string;
+
+  @ApiProperty({
+    description: 'Time of user creation in ISO Date Time String Format',
+  })
+  createdAt: string;
+
+  @ApiProperty({ description: 'First name of the user' })
+  firstName: string;
+
+  @ApiProperty({ description: 'Last name of the user' })
+  lastName: string;
+
+  @ApiProperty({ description: 'Profile Picture URL of the user' })
+  dpUrl: string;
+}
+
+
+export class PlatformUserJwtResponseDto {
+  @ApiProperty({ description: 'JWT Token' })
+  jwt: string;
+} 
