@@ -9,6 +9,7 @@ import {
 } from './dto/platform-user-dto';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
+import { platform } from 'os';
 
 @Injectable()
 export class PlatformUserService {
@@ -23,9 +24,13 @@ export class PlatformUserService {
     dto: CreatePlatformUserDto,
   ): Promise<PlatformUserResponseDto> {
     try {
-      return this.prisma.platformUser.create({
+      const response = await this.prisma.platformUser.create({
         data: dto,
       });
+
+      response['platformUserId'] = response['id'];
+
+      return response;
     } catch (error) {
       this.logger.error(
         `Unable to create platform user: ${error}`,
@@ -38,74 +43,70 @@ export class PlatformUserService {
 
   async getPlatformUserViaEmail(
     query: GetPlatformUserViaEmailDto,
-  ): Promise<PlatformUserResponseDto> {
+  ): Promise<PlatformUserResponseDto | null> {
     try {
       const user = await this.prisma.platformUser.findUnique({
         where: { email: query.email },
       });
 
       if (!user) {
-        throw new NotFoundException(
-          'No platform user found with the provided email',
-        );
+        return null;
       }
+
+      user['platformUserId'] = user['id'];
 
       return user;
     } catch (error) {
       this.logger.error(
         `Unable to find platform user: ${error}`,
-        error.stack,
+
         'PlatformUserService/getPlatformUserViaEmail',
       );
-      throw new Error('Unable to find user');
+      return null;
     }
   }
 
   async getPlatformUserViaId(
     query: GetPlatformUserViaIdDto,
-  ): Promise<PlatformUserResponseDto> {
+  ): Promise<PlatformUserResponseDto | null> {
     try {
+
+      console.log(query.platformUserId);
       const user = await this.prisma.platformUser.findUnique({
         where: { id: query.platformUserId },
       });
 
       if (!user) {
-        this.logger.error(
-          `No platform user found with the provided id: ${query.platformUserId}`,
-          'PlatformUserService/getPlatformUserViaId',
-        );
-        throw new NotFoundException(
-          'No platform user found with the provided id',
-        );
+        return null;
       }
+
+      user['platformUserId'] = user['id'];
 
       return user;
     } catch (error) {
-      this.logger.error(
-        `Unable to find platform user: ${error}`,
-        error.stack,
-        'PlatformUserService/getPlatformUserViaId',
-      );
+      // this.logger.error(
+      //   `Unable to find platform user: ${error}`,
+      //   error.stack,
+      //   'PlatformUserService/getPlatformUserViaId',
+      // );
       throw new Error('Unable to find user');
     }
   }
 
   async getSignedJwtTokenForUser(
     query: GetJwtForPlatformUserDto,
-  ): Promise<string> {
+  ): Promise<string | null> {
     try {
       // check in the database if the user exists
       const user = await this.prisma.platformUser.findUnique({
         where: { id: query.platformUserId, email: query.email },
       });
       if (!user) {
-        this.logger.error(
-          `No user found with the provided id: ${query.platformUserId} and email: ${query.email}`,
-          'PlatformUserService/getSignedJwtTokenForUser',
-        );
-        throw new NotFoundException(
-          'No user found with the provided id and email',
-        );
+        // this.logger.error(
+        //   `No user found with the provided id: ${query.platformUserId} and email: ${query.email}`,
+        //   'PlatformUserService/getSignedJwtTokenForUser',
+        // );
+        return null;
       }
       const payload = {
         sub: query.platformUserId,
@@ -124,7 +125,7 @@ export class PlatformUserService {
         error.stack,
         'PlatformUserService/getSignedJwtTokenForUser',
       );
-      throw new Error('Unable to find user');
+      return null;
     }
   }
 }

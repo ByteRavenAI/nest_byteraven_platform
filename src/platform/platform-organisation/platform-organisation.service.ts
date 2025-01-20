@@ -26,6 +26,9 @@ import {
   GetOrganisationMemberStatusResponseDto,
   UpdateOrganisationMemberStatusDto,
 } from './dto/platform-organisation-member-dto';
+import { v4 as uuidv4 } from 'uuid';
+import { AwsService } from 'src/aws/aws.service';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class PlatformOrganisationService {
@@ -33,26 +36,108 @@ export class PlatformOrganisationService {
     private prisma: PrismaService,
     private stripeService: StripeService,
     private readonly logger: Logger,
+    private awsService: AwsService,
+    private config: ConfigService,
   ) {}
   async createOrganisation(
+    dpFile: Express.Multer.File,
     dto: CreatePlatformOrganisationDto,
   ): Promise<boolean> {
-    // TODO - create api key and billing object
     try {
-      const success = this.prisma.organisation.create({
+      // create orgAlias
+      const organisationAlias = await this.createOrgAliasMiddleware(
+        dto.orgName,
+      );
+      dto.orgAlias = organisationAlias;
+
+      // create organisation
+      const success = await this.prisma.organisation.create({
         data: dto,
       });
-      if (success) {
+
+      // upload dp to s3
+      const uniqueFileName = `organisations/${success.id}/dp/${uuidv4()}.jpg`;
+
+      const imageUrl = await this.awsService.uploadFileToS3Service(
+        this.config.get('AWS_S3_BUCKET_NAME') || '',
+        dpFile.path,
+        uniqueFileName,
+      );
+
+      // update organisation dp
+      const updated = await this.prisma.organisation.update({
+        where: { id: success.id },
+        data: {
+          orgDpUrl: imageUrl.url,
+        },
+      });
+
+      // create a uuid for organisation api key
+      const apiKey = uuidv4();
+      const apiKeyResponse = await this.prisma.organisationApiKey.create({
+        data: {
+          organisationId: success.id,
+          apiKey: apiKey,
+          organisationAlias: organisationAlias,
+        },
+      });
+
+      // create organisation billing doc
+
+      const orgBillingDoc = await this.prisma.organisationBilling.create({
+        data: {
+          orgId: success.id,
+          orgAlias: organisationAlias,
+          orgSuperAdminId: success.orgSuperAdmin,
+          balance: 1000, // 10 usd
+          currency: 'USD',
+          lastUpdated: success.createdAt,
+          organisationBillingId: '',
+          transactions: [],
+          usage: [],
+        },
+      });
+
+      if (success && updated && apiKeyResponse && orgBillingDoc) {
         return true;
+      } else {
+        this.logger.error(
+          `Error creating organisation`,
+          'PlatformOrganisationService/createOrganisation',
+        );
+        return false;
       }
-      return false;
     } catch (error) {
       this.logger.error(
         `Unable to create organisation: ${error}`,
         error.stack,
         'PlatformOrganisationService/createOrganisation',
       );
-      throw new Error('Unable to create organisation');
+      return false;
+    }
+  }
+
+  async createOrgAliasMiddleware(orgName: string): Promise<string> {
+    try {
+      let orgAlias = orgName.replace(/\s/g, '').toLowerCase();
+
+      let exists = await this.prisma.organisation.findFirst({
+        where: { orgAlias: orgAlias },
+      });
+
+      if (!exists) {
+        return orgAlias;
+      } else {
+        while (exists) {
+          orgAlias = orgAlias + Math.floor(Math.random() * 1000);
+          exists = await this.prisma.organisation.findFirst({
+            where: { orgAlias: orgAlias },
+          });
+        }
+        return orgAlias;
+      }
+    } catch (error) {
+      return '';
     }
   }
 

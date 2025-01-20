@@ -2,11 +2,16 @@ import {
   Body,
   Controller,
   Get,
+  HttpException,
+  HttpStatus,
   Post,
   Put,
   Query,
   Req,
+  UploadedFile,
+  UseFilters,
   UseGuards,
+  UseInterceptors,
 } from '@nestjs/common';
 import { PlatformOrganisationService } from './platform-organisation.service';
 import { Request } from 'express';
@@ -27,6 +32,8 @@ import {
   ApiOperation,
   ApiResponse,
   ApiBearerAuth,
+  ApiBasicAuth,
+  ApiConsumes,
 } from '@nestjs/swagger';
 import {
   CreateOrganisationBillingStripePaymentSessionDto,
@@ -42,16 +49,22 @@ import {
   UpdateOrganisationMemberStatusDto,
 } from './dto/platform-organisation-member-dto';
 import { PlatformOrgApiKeyGuard } from '../platform-auth/guard/apikey.guard';
+import { HttpExceptionFilter } from 'src/helpers/http-exception-filter';
+import { ApiResponseWrapper } from 'src/helpers/http-response-wrapper';
+import { FileInterceptor } from '@nestjs/platform-express';
 
 @ApiTags('Platform Organisation')
 @Controller('organisation')
+@UseFilters(HttpExceptionFilter)
 export class PlatformOrganisationController {
   constructor(private organisationService: PlatformOrganisationService) {}
 
   @Post()
   @UseGuards(PlatformUserJwtGuard)
-  @ApiBearerAuth()
+  @ApiBearerAuth('JWT')
   @ApiOperation({ summary: 'Create a new Organisation' })
+  @UseInterceptors(FileInterceptor('file'))
+  @ApiConsumes('multipart/form-data')
   @ApiResponse({
     status: 201,
     description: 'Organisation Created',
@@ -60,20 +73,35 @@ export class PlatformOrganisationController {
     status: 400,
     description: 'Bad Request',
   })
-  async createOrganisation(@Body() dto: CreatePlatformOrganisationDto) {
-    const success = await this.organisationService.createOrganisation(dto);
+  async createOrganisation(
+    @Body() dto: CreatePlatformOrganisationDto,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    const success = await this.organisationService.createOrganisation(
+      file,
+      dto,
+    );
+
     if (success) {
-      return { success: true, message: 'Organisation created successfully' };
+      return new ApiResponseWrapper(
+        HttpStatus.CREATED,
+        'Organisation created successfully',
+        success,
+      );
     }
 
-    return { success: false, message: 'Organisation creation failed' };
+    throw new HttpException(
+      'Failed to create Organisation',
+      HttpStatus.BAD_REQUEST,
+    );
   }
 
   @Get()
   @ApiOperation({ summary: 'Get Organisation by Id' })
   @UseGuards(PlatformUserJwtGuard)
   @UseGuards(PlatformOrgApiKeyGuard)
-  @ApiBearerAuth()
+  @ApiBearerAuth('JWT')
+  @ApiBasicAuth('API_KEY')
   @ApiResponse({
     status: 200,
     description: 'Organisation Found',
@@ -83,13 +111,19 @@ export class PlatformOrganisationController {
     status: 400,
     description: 'Bad Request',
   })
-  async getOrganisationById(@Query() dto: GetPlatformOrganisationViaIdDto) {
+  async getOrganisationById(
+    @Query() dto: GetPlatformOrganisationViaIdDto,
+  ): Promise<ApiResponseWrapper<PlatformOrganisationResponseDto>> {
     const success = await this.organisationService.getOrganisationById(dto);
 
     if (success) {
-      return success;
+      return new ApiResponseWrapper(
+        HttpStatus.OK,
+        'Organisation found successfully',
+        success,
+      );
     } else {
-      return { success: false, message: 'Organisation not found' };
+      throw new HttpException('Organisation not found', HttpStatus.BAD_REQUEST);
     }
   }
 
@@ -97,7 +131,8 @@ export class PlatformOrganisationController {
   @ApiOperation({ summary: 'Get Organisations by Admin Id' })
   @UseGuards(PlatformUserJwtGuard)
   @UseGuards(PlatformOrgApiKeyGuard)
-  @ApiBearerAuth()
+  @ApiBearerAuth('JWT')
+  @ApiBasicAuth('API_KEY')
   @ApiResponse({
     status: 200,
     description: 'Organisations Found',
@@ -109,19 +144,24 @@ export class PlatformOrganisationController {
   })
   async createOrganisationsByAdminId(
     @Query() dto: GetPlatformUserViaAdminIdDto,
-  ) {
+  ): Promise<ApiResponseWrapper<PlatformOrganisationsListResponseDto>> {
     const orgs = await this.organisationService.getOrganisationsByAdminId(dto);
     if (orgs) {
-      return orgs;
+      return new ApiResponseWrapper(
+        HttpStatus.OK,
+        'Organisations found successfully',
+        orgs,
+      );
     }
-    return { success: false, message: 'Organisations not found' };
+    throw new HttpException('Organisations not found', HttpStatus.BAD_REQUEST);
   }
 
   @Get('api-key')
   @ApiOperation({ summary: 'Get Organisation API Key' })
   @UseGuards(PlatformUserJwtGuard)
   @UseGuards(PlatformOrgApiKeyGuard)
-  @ApiBearerAuth()
+  @ApiBearerAuth('JWT')
+  @ApiBasicAuth('API_KEY')
   @ApiResponse({
     status: 200,
     description: 'Organisation API Key Found',
@@ -131,7 +171,9 @@ export class PlatformOrganisationController {
     status: 400,
     description: 'Bad Request',
   })
-  async getOrganisationApiKey(@Req() req: Request) {
+  async getOrganisationApiKey(
+    @Req() req: Request,
+  ): Promise<ApiResponseWrapper<GetPlatformOrganisationApiKeyResponseDto>> {
     const { orgId, orgAlias } = req.user as {
       orgId: string;
       orgAlias: string;
@@ -139,9 +181,16 @@ export class PlatformOrganisationController {
     const response =
       await this.organisationService.getOrganisationApiKey(orgId);
     if (response) {
-      return response;
+      return new ApiResponseWrapper(
+        HttpStatus.OK,
+        'Organisation API Key found',
+        response,
+      );
     } else {
-      return { success: false, message: 'Organisation API Key not found' };
+      throw new HttpException(
+        'Organisation API Key not found',
+        HttpStatus.BAD_REQUEST,
+      );
     }
   }
 

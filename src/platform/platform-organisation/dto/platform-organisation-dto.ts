@@ -1,3 +1,4 @@
+import { Optional } from '@nestjs/common';
 import { ApiProperty } from '@nestjs/swagger';
 import {
   IsArray,
@@ -8,32 +9,32 @@ import {
 } from 'class-validator';
 
 export class CreatePlatformOrganisationDto {
-  @IsOptional()
-  @IsString()
-  @ApiProperty({ description: 'Organisation ID' })
-  orgId?: string;
+  // @IsOptional()
+  // @IsString()
+  // @ApiProperty({ description: 'Organisation ID' })
+  // orgId?: string;
 
   @IsString({ message: 'Organization name is required' })
   @ApiProperty({ description: 'Organisation name' })
   orgName: string;
 
+  @Optional()
   @IsString()
-  @ApiProperty({ description: 'Organisation alias' })
   orgAlias: string = '';
 
-  @IsOptional()
-  @IsString()
-  @ApiProperty({ description: 'Organisation Dp Url' })
-  orgDpUrl?: string = '';
+  // @IsOptional()
+  // @IsString()
+  // @ApiProperty({ description: 'Organisation Dp Url' })
+  // orgDpUrl?: string = '';
 
   @IsString()
   @ApiProperty({ description: 'Organisation Super Admin Id' })
   orgSuperAdmin: string;
 
-  @IsArray()
-  @IsString({ each: true })
-  @ApiProperty({ description: 'Organisation Admins' })
-  orgAdmins: string[] = [];
+  // @IsArray()
+  // @IsString({ each: true })
+  // @ApiProperty({ description: 'Organisation Admins' })
+  // orgAdmins: string[] = [];
 
   @IsString({ message: 'Organization join date is required' })
   @ApiProperty({
@@ -68,6 +69,13 @@ export class CreatePlatformOrganisationDto {
     description: 'Organisation Last Updated Date in ISO Date Time String',
   })
   updatedAt: string;
+
+  @ApiProperty({
+    description: 'The logo file of the organisation',
+    type: 'string',
+    format: 'binary', // Required for file uploads in Swagger
+  })
+  file: any;
 }
 
 export class GetPlatformOrganisationViaIdDto {

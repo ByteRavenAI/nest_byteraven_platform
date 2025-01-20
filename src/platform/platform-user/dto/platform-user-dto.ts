@@ -73,8 +73,7 @@ export class PlatformUserResponseDto {
   dpUrl: string;
 }
 
-
 export class PlatformUserJwtResponseDto {
   @ApiProperty({ description: 'JWT Token' })
   jwt: string;
-} 
+}
