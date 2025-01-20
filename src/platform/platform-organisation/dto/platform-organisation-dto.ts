@@ -1,5 +1,6 @@
 import { Optional } from '@nestjs/common';
 import { ApiProperty } from '@nestjs/swagger';
+import { Transform } from 'class-transformer';
 import {
   IsArray,
   IsBoolean,
@@ -56,7 +57,8 @@ export class CreatePlatformOrganisationDto {
 
   @IsBoolean()
   @ApiProperty({ description: 'Organisation Active Status' })
-  orgActive: boolean = true;
+  @Transform(({ value }) => value === 'true') // Convert "true"/"false" strings to boolean
+  orgActive: boolean;
 
   @IsString({ message: 'Creation date is required' })
   @ApiProperty({

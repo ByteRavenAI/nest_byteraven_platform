@@ -2,6 +2,7 @@ import { ApiProperty } from '@nestjs/swagger';
 import { IsString } from 'class-validator';
 
 export class GetPlatformOrganisationApiKeyDto {
+  @ApiProperty({ description: 'Organisation Id' })
   @IsString()
   organisationId: string;
 }

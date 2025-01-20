@@ -341,7 +341,7 @@ export class PlatformScreeningSubmissionsService {
 
       const audioUrl = await this.awsService.uploadFileToS3Service(
         this.config.get('AWS_S3_BUCKET_NAME') || '',
-        file.path,
+        file,
         uniqueFileName,
       );
 

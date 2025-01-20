@@ -60,8 +60,8 @@ export class PlatformOrganisationController {
   constructor(private organisationService: PlatformOrganisationService) {}
 
   @Post()
-  @UseGuards(PlatformUserJwtGuard)
   @ApiBearerAuth('JWT')
+  @UseGuards(PlatformUserJwtGuard)
   @ApiOperation({ summary: 'Create a new Organisation' })
   @UseInterceptors(FileInterceptor('file'))
   @ApiConsumes('multipart/form-data')
@@ -77,6 +77,10 @@ export class PlatformOrganisationController {
     @Body() dto: CreatePlatformOrganisationDto,
     @UploadedFile() file: Express.Multer.File,
   ) {
+    console.log('File' + file);
+    console.log(file.path);
+    console.log(file.buffer);
+
     const success = await this.organisationService.createOrganisation(
       file,
       dto,
@@ -99,9 +103,9 @@ export class PlatformOrganisationController {
   @Get()
   @ApiOperation({ summary: 'Get Organisation by Id' })
   @UseGuards(PlatformUserJwtGuard)
-  @UseGuards(PlatformOrgApiKeyGuard)
+  // @UseGuards(PlatformOrgApiKeyGuard)
   @ApiBearerAuth('JWT')
-  @ApiBasicAuth('API_KEY')
+  // @ApiBasicAuth('API_KEY')
   @ApiResponse({
     status: 200,
     description: 'Organisation Found',
@@ -130,9 +134,9 @@ export class PlatformOrganisationController {
   @Get('admin')
   @ApiOperation({ summary: 'Get Organisations by Admin Id' })
   @UseGuards(PlatformUserJwtGuard)
-  @UseGuards(PlatformOrgApiKeyGuard)
+  // @UseGuards(PlatformOrgApiKeyGuard)
   @ApiBearerAuth('JWT')
-  @ApiBasicAuth('API_KEY')
+  // @ApiBasicAuth('API_KEY')
   @ApiResponse({
     status: 200,
     description: 'Organisations Found',
@@ -159,9 +163,9 @@ export class PlatformOrganisationController {
   @Get('api-key')
   @ApiOperation({ summary: 'Get Organisation API Key' })
   @UseGuards(PlatformUserJwtGuard)
-  @UseGuards(PlatformOrgApiKeyGuard)
+  // @UseGuards(PlatformOrgApiKeyGuard)
   @ApiBearerAuth('JWT')
-  @ApiBasicAuth('API_KEY')
+  // @ApiBasicAuth('API_KEY')
   @ApiResponse({
     status: 200,
     description: 'Organisation API Key Found',
@@ -172,14 +176,16 @@ export class PlatformOrganisationController {
     description: 'Bad Request',
   })
   async getOrganisationApiKey(
-    @Req() req: Request,
+    // @Req() req: Request,
+    @Query() dto: GetPlatformOrganisationApiKeyDto,
   ): Promise<ApiResponseWrapper<GetPlatformOrganisationApiKeyResponseDto>> {
-    const { orgId, orgAlias } = req.user as {
-      orgId: string;
-      orgAlias: string;
-    };
-    const response =
-      await this.organisationService.getOrganisationApiKey(orgId);
+    // const { orgId, orgAlias } = req.user as {
+    //   orgId: string;
+    //   orgAlias: string;
+    // };
+    const response = await this.organisationService.getOrganisationApiKey(
+      dto.organisationId,
+    );
     if (response) {
       return new ApiResponseWrapper(
         HttpStatus.OK,
@@ -197,8 +203,9 @@ export class PlatformOrganisationController {
   @Get('billing')
   @ApiOperation({ summary: 'Get Organisation Billing' })
   @UseGuards(PlatformUserJwtGuard)
-  @UseGuards(PlatformOrgApiKeyGuard)
-  @ApiBearerAuth()
+  // @UseGuards(PlatformOrgApiKeyGuard)
+  @ApiBearerAuth('JWT')
+  // @ApiBasicAuth('X-API-KEY')
   @ApiResponse({
     status: 200,
     description: 'Organisation Billing Found',
@@ -210,15 +217,22 @@ export class PlatformOrganisationController {
   })
   async getOrganisationBilling(
     @Query() dto: GetOrganisationBillingViaOrgIdDto,
-  ) {
+  ): Promise<ApiResponseWrapper<GetOrganisationBillingViaOrgIdResponseDto>> {
     const billing = await this.organisationService.getOrganisationBilling(
       dto.orgId,
     );
 
     if (billing) {
-      return billing;
+      return new ApiResponseWrapper(
+        HttpStatus.OK,
+        'Organisation Billing found',
+        billing,
+      );
     }
-    return { success: false, message: 'Organisation Billing not found' };
+    throw new HttpException(
+      'Organisation Billing not found',
+      HttpStatus.BAD_REQUEST,
+    );
   }
 
   @Post('billing/stripe/session')
@@ -235,15 +249,24 @@ export class PlatformOrganisationController {
   })
   async createOrganisationBillingStripePaymentSession(
     @Body() dto: CreateOrganisationBillingStripePaymentSessionDto,
-  ) {
+  ): Promise<
+    ApiResponseWrapper<CreatePlatformOrganisationBillingStripeSessionResponseDto>
+  > {
     const response =
       await this.organisationService.createOrganisationBillingStripePaymentSession(
         dto,
       );
     if (response) {
-      return response;
+      return new ApiResponseWrapper(
+        HttpStatus.CREATED,
+        'Payment Session created successfully',
+        response,
+      );
     } else {
-      return { success: false, message: 'Payment Session creation failed' };
+      throw new HttpException(
+        'Failed to create Payment Session',
+        HttpStatus.BAD_REQUEST,
+      );
     }
   }
 
@@ -270,13 +293,20 @@ export class PlatformOrganisationController {
   })
   async createOrganisationMemberStatus(
     @Body() dto: CreateOrganisationMemberStatusDto,
-  ) {
+  ): Promise<ApiResponseWrapper<any>> {
     const success =
       await this.organisationService.createOrganisationMemberStatus(dto);
     if (success) {
-      return { success: true, message: 'Member Status created successfully' };
+      return new ApiResponseWrapper(
+        HttpStatus.CREATED,
+        'Member Status created successfully',
+        success,
+      );
     } else {
-      return { success: false, message: 'Member Status creation failed' };
+      throw new HttpException(
+        'Failed to create Member Status',
+        HttpStatus.BAD_REQUEST,
+      );
     }
   }
 
@@ -296,13 +326,20 @@ export class PlatformOrganisationController {
   })
   async getOrganisationMemberStatus(
     @Query() dto: GetOrganisationMemberStatusOfUser,
-  ) {
+  ): Promise<ApiResponseWrapper<GetOrganisationMemberStatusResponseDto>> {
     const response =
       await this.organisationService.getOrganisationMemberStatusOfaUser(dto);
     if (response) {
-      return response;
+      return new ApiResponseWrapper(
+        HttpStatus.OK,
+        'Member Status found',
+        response,
+      );
     } else {
-      return { success: false, message: 'Member Status not found' };
+      throw new HttpException(
+        'Member Status not found',
+        HttpStatus.BAD_REQUEST,
+      );
     }
   }
 
@@ -316,13 +353,21 @@ export class PlatformOrganisationController {
     description: 'Member Status Found',
     type: GetAllOrganisationMemberStatusOfOrgListResponseDto,
   })
-  async getAllOrganisationMemberStatus(@Query() dto: any) {
+  async getAllOrganisationMemberStatus(
+    @Query() dto: any,
+  ): Promise<
+    ApiResponseWrapper<GetAllOrganisationMemberStatusOfOrgListResponseDto>
+  > {
     const statuses =
       await this.organisationService.getAllOrganisationMemberStatus(dto);
     if (statuses) {
-      return statuses;
+      return new ApiResponseWrapper(
+        HttpStatus.OK,
+        'Member Status found',
+        statuses,
+      );
     }
-    return { success: false, message: 'Member Status not found' };
+    throw new HttpException('Member Status not found', HttpStatus.BAD_REQUEST);
   }
 
   @Put('member')
@@ -331,14 +376,21 @@ export class PlatformOrganisationController {
   @ApiBearerAuth()
   async updateOrganisationMemberStatus(
     @Body() dto: UpdateOrganisationMemberStatusDto,
-  ) {
+  ): Promise<ApiResponseWrapper<any>> {
     const success =
       await this.organisationService.updateOrganisationMemberStatus(dto);
 
     if (success) {
-      return { success: true, message: 'Member Status updated successfully' };
+      return new ApiResponseWrapper(
+        HttpStatus.OK,
+        'Member Status updated successfully',
+        success,
+      );
     } else {
-      return { success: false, message: 'Member Status update failed' };
+      throw new HttpException(
+        'Failed to update Member Status',
+        HttpStatus.BAD_REQUEST,
+      );
     }
   }
 

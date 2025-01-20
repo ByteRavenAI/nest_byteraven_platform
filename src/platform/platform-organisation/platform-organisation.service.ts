@@ -60,7 +60,7 @@ export class PlatformOrganisationService {
 
       const imageUrl = await this.awsService.uploadFileToS3Service(
         this.config.get('AWS_S3_BUCKET_NAME') || '',
-        dpFile.path,
+        dpFile,
         uniqueFileName,
       );
 
@@ -143,35 +143,32 @@ export class PlatformOrganisationService {
 
   async getOrganisationById(
     query: GetPlatformOrganisationViaIdDto,
-  ): Promise<PlatformOrganisationResponseDto> {
+  ): Promise<PlatformOrganisationResponseDto | null> {
     try {
       const org = await this.prisma.organisation.findUnique({
         where: { id: query.orgId },
       });
 
       if (!org) {
-        throw new NotFoundException(
-          'No organisation found with the provided id',
-        );
+        return null;
       }
 
-      return {
-        orgId: org.id,
-        ...org,
-      };
+      org['orgId'] = org.id;
+
+      return org;
     } catch (error) {
       this.logger.error(
         `Unable to find organisation: ${error}`,
         error.stack,
         'PlatformOrganisationService/getOrganisationById',
       );
-      throw new Error('Unable to find organisation');
+      return null;
     }
   }
 
   async getOrganisationsByAdminId(
     query: GetPlatformUserViaAdminIdDto,
-  ): Promise<PlatformOrganisationsListResponseDto> {
+  ): Promise<PlatformOrganisationsListResponseDto | null> {
     try {
       const orgs = await this.prisma.organisation.findMany({
         where: {
@@ -183,16 +180,11 @@ export class PlatformOrganisationService {
       });
 
       if (!orgs) {
-        throw new NotFoundException(
-          'No organisation found with the provided admin id',
-        );
+        return null;
       }
 
       for (let i = 0; i < orgs.length; i++) {
-        orgs[i] = {
-          orgId: orgs[i].id,
-          ...orgs[i],
-        };
+        orgs[i]['orgId'] = orgs[i].id;
       }
       return {
         organisations: orgs,
@@ -203,7 +195,7 @@ export class PlatformOrganisationService {
         error.stack,
         'PlatformOrganisationService/getOrganisationsByAdminId',
       );
-      throw new Error('Unable to find organisation');
+      return null;
     }
   }
 
@@ -244,16 +236,15 @@ export class PlatformOrganisationService {
 
   async getOrganisationBilling(
     orgId: string,
-  ): Promise<GetOrganisationBillingViaOrgIdResponseDto> {
+  ): Promise<GetOrganisationBillingViaOrgIdResponseDto | null> {
     try {
+      console.log(orgId);
       const org = await this.prisma.organisationBilling.findUnique({
         where: { orgId: orgId },
       });
 
       if (!org) {
-        throw new NotFoundException(
-          'No organisation found with the provided id',
-        );
+        return null;
       }
 
       return org;
@@ -263,7 +254,7 @@ export class PlatformOrganisationService {
         error.stack,
         'PlatformOrganisationService/getOrganisationBilling',
       );
-      throw new Error('Unable to find organisation');
+      return null;
     }
   }
 

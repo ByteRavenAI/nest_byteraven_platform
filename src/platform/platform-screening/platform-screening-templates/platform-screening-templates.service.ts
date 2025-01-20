@@ -9,6 +9,8 @@ import { v4 as uuidv4 } from 'uuid';
 import { LlmService } from 'src/llm/llm.service';
 import { AwsService } from 'src/aws/aws.service';
 import { ConfigService } from '@nestjs/config';
+import fs from 'fs';
+import { Readable } from 'stream';
 
 @Injectable()
 export class PlatformScreeningTemplatesService {
@@ -39,9 +41,24 @@ export class PlatformScreeningTemplatesService {
 
           const uniqueFileName = `organisations/${dto.orgId}/screeningtemplatequestions/${audioFileName}`;
 
+          // create file from path audio
+          const file: Express.Multer.File = {
+            fieldname: 'audio',
+            originalname: `${uuidv4()}.mp3`,
+            encoding: '7bit',
+            mimetype: 'audio/mpeg',
+            buffer: Buffer.from(audio, 'binary'),
+            size: Buffer.byteLength(audio, 'binary'),
+            stream: new Readable(),
+            destination: '',
+            filename: '',
+            path: '',
+          };
+
           const audioUrl = await this.awsService.uploadFileToS3Service(
             this.config.get('AWS_S3_BUCKET_NAME') || '',
-            audio,
+            file,
+
             uniqueFileName,
           );
 

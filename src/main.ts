@@ -11,12 +11,8 @@ async function bootstrap() {
   app.setGlobalPrefix('api/v2');
   app.useGlobalPipes(
     new ValidationPipe({
-      whitelist: true,
-      // forbidNonWhitelisted: true,
-      // transform: true,
-      // transformOptions: {
-      //   enableImplicitConversion: true
-      // }
+      transform: true, // Automatically transform payloads
+      whitelist: true, // Strip unknown properties
     }),
   );
   app.useGlobalFilters(new HttpExceptionFilter());
@@ -27,10 +23,7 @@ async function bootstrap() {
     .setDescription('API Documentation for Screening AI')
     .setVersion('1.0')
     .addTag('api/v2') // Optional: Add tags for grouping
-    .addApiKey(
-      { type: 'apiKey', name: 'x-api-key', in: 'header' }, // API Key Auth
-      'apiKeyAuth', // Name of the auth scheme
-    )
+    .addApiKey({ type: 'apiKey', name: 'x-api-key', in: 'header' }, 'X-API-KEY')
     .addBearerAuth(
       { type: 'http', scheme: 'bearer', bearerFormat: 'JWT' }, // Bearer Auth
       'JWT', // Name of the auth scheme

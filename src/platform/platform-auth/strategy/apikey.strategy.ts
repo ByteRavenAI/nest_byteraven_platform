@@ -15,25 +15,34 @@ export class PlatformOrgApiKeyStrategy extends PassportStrategy(
   }
 
   async validate(req: Request): Promise<any> {
-    const apiKey = req.headers['x-api-key'] as string;
+    try {
+      const apiKey = req.headers['x-api-key'] as string;
 
-    if (!apiKey) {
-      throw new UnauthorizedException('API key is missing');
+      if (!apiKey) {
+        console.error('API key is missing');
+        throw new UnauthorizedException('API key is missing');
+      }
+
+      console.log('Validating API key:', apiKey);
+
+      const apiKeyDoc = await this.prisma.organisationApiKey.findUnique({
+        where: { apiKey },
+      });
+
+      if (!apiKeyDoc) {
+        console.error('Invalid API key:', apiKey);
+        throw new UnauthorizedException('Invalid API key');
+      }
+
+      console.log('API key validated successfully:', apiKeyDoc);
+
+      return {
+        orgId: apiKeyDoc.organisationId,
+        orgAlias: apiKeyDoc.organisationAlias,
+      };
+    } catch (error) {
+      console.error('Error during API key validation:', error);
+      throw new UnauthorizedException('API key validation failed');
     }
-
-    const apiKeyDoc = await this.prisma.organisationApiKey.findUnique({
-      where: {
-        apiKey,
-      },
-    });
-
-    if (!apiKeyDoc) {
-      throw new UnauthorizedException('Invalid API key');
-    }
-
-    return {
-      orgId: apiKeyDoc.organisationId,
-      orgAlias: apiKeyDoc.organisationAlias,
-    };
   }
 }

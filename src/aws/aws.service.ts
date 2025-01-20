@@ -26,15 +26,14 @@ export class AwsService {
 
   async uploadFileToS3Service(
     bucketName: string,
-    filePath: string,
+    file: Express.Multer.File,
     fileName: string, // contains folder + file name + extension eg. orgId/courses/courseId/module/moduleId/chapter/filename.mp3
   ): Promise<IS3UploadedFileInfoInterface | null> {
-    const fileStream = fs.createReadStream(filePath);
-
     const params = {
       Bucket: bucketName,
       Key: fileName,
-      Body: fileStream,
+      Body: file.buffer,
+      ContentType: file.mimetype,
     };
 
     try {
