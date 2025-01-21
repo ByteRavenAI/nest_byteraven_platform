@@ -2,10 +2,13 @@ import {
   Body,
   Controller,
   Get,
+  HttpException,
+  HttpStatus,
   Post,
   Put,
   Query,
   UploadedFile,
+  UseFilters,
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
@@ -13,13 +16,16 @@ import { PlatformScreeningSubmissionsService } from './platform-screening-submis
 import { Express } from 'express';
 import {
   ApiBearerAuth,
+  ApiConsumes,
   ApiOperation,
   ApiResponse,
+  ApiSecurity,
   ApiTags,
 } from '@nestjs/swagger';
 import { PlatformUserJwtGuard } from 'src/platform/platform-auth/guard/jwt.guard';
 import {
   CreatePlatformScreeningFormSubmissionDto,
+  CreatePlatformScreeningSubmissionResponseDto,
   CreatePlatformScreeningSubmissionStreamingRoomTokenDto,
   GetPlatformScreeningSubmissionsOfOrgDto,
   GetPlatformScreeningSubmissionsUsingIdDto,
@@ -36,9 +42,11 @@ import {
 } from './dto/platform-screening-submission-dto';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { PlatformOrgApiKeyGuard } from 'src/platform/platform-auth/guard/apikey.guard';
+import { HttpExceptionFilter } from 'src/helpers/http-exception-filter';
+import { ApiResponseWrapper } from 'src/helpers/http-response-wrapper';
 
+@UseFilters(HttpExceptionFilter)
 @ApiTags('Platform Screening Submissions')
-@UseGuards(PlatformUserJwtGuard)
 @Controller('screeningSubmissions')
 export class PlatformScreeningSubmissionsController {
   constructor(
@@ -50,7 +58,7 @@ export class PlatformScreeningSubmissionsController {
   @ApiResponse({
     status: 201,
     description: 'Screening Submission Created',
-    type: PlatformScreeningSubmissionListResponseDto,
+    type: CreatePlatformScreeningSubmissionResponseDto,
   })
   @ApiResponse({
     status: 400,
@@ -58,22 +66,32 @@ export class PlatformScreeningSubmissionsController {
   })
   async createScreeningSubmission(
     @Body() dto: CreatePlatformScreeningFormSubmissionDto,
-  ) {
+  ): Promise<ApiResponseWrapper<CreatePlatformScreeningSubmissionResponseDto>> {
     const response =
-      this.platformScreeningSubmissionsService.createScreeningSubmission(dto);
+      await this.platformScreeningSubmissionsService.createScreeningSubmission(
+        dto,
+      );
 
     if (response) {
-      return response;
+      return new ApiResponseWrapper(
+        HttpStatus.CREATED,
+        'Platform User created successfully',
+        response,
+      );
     } else {
-      return { message: 'Bad Request' };
+      throw new HttpException(
+        'Failed to create Screening Submission',
+        HttpStatus.BAD_REQUEST,
+      );
     }
   }
 
   @Get('jobId')
   @ApiOperation({ summary: 'Get Screening Submissions using Job ID' })
-  @UseGuards(PlatformOrgApiKeyGuard)
   @UseGuards(PlatformUserJwtGuard)
-  @ApiBearerAuth()
+  @ApiBearerAuth('JWT')
+  @UseGuards(PlatformOrgApiKeyGuard)
+  @ApiSecurity('X-API-KEY')
   @ApiResponse({
     status: 200,
     description: 'Screening Submissions',
@@ -81,21 +99,31 @@ export class PlatformScreeningSubmissionsController {
   })
   async getScreeningSubmissionsUsingJobId(
     @Query() dto: GetPlatformScreeningSubmissionsUsingJobIdDto,
-  ) {
-    const submissions =
-      await this.platformScreeningSubmissionsService.getScreeningSubmissionsByJobId(
-        dto.jobId,
-      );
+  ): Promise<ApiResponseWrapper<PlatformScreeningSubmissionListResponseDto>> {
+    try {
+      const submissions =
+        await this.platformScreeningSubmissionsService.getScreeningSubmissionsByJobId(
+          dto.jobId,
+        );
 
-    return {
-      submissions: submissions,
-    };
+      return new ApiResponseWrapper(
+        HttpStatus.OK,
+        'Screening Submissions',
+        submissions,
+      );
+    } catch (error) {
+      throw new HttpException(
+        'Failed to get Screening Submissions',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
   }
 
   @Get('id')
-  @UseGuards(PlatformOrgApiKeyGuard)
   @UseGuards(PlatformUserJwtGuard)
-  @ApiBearerAuth()
+  @ApiBearerAuth('JWT')
+  @UseGuards(PlatformOrgApiKeyGuard)
+  @ApiSecurity('X-API-KEY')
   @ApiResponse({
     status: 200,
     description: 'Screening Submission',
@@ -104,19 +132,31 @@ export class PlatformScreeningSubmissionsController {
   @ApiOperation({ summary: 'Get Screening Submission using ID' })
   async getScreeningSubmissionUsingId(
     @Query() dto: GetPlatformScreeningSubmissionsUsingIdDto,
-  ) {
+  ): Promise<ApiResponseWrapper<PlatformScreeningSubmissionResponseDto>> {
     const response =
       await this.platformScreeningSubmissionsService.getScreeningSubmissionById(
         dto.screeningSubmissionId,
       );
 
-    return response;
+    if (response) {
+      return new ApiResponseWrapper(
+        HttpStatus.OK,
+        'Screening Submission',
+        response,
+      );
+    } else {
+      throw new HttpException(
+        'Screening Submission not found',
+        HttpStatus.NOT_FOUND,
+      );
+    }
   }
 
   @Post('org/filters')
-  @UseGuards(PlatformOrgApiKeyGuard)
   @UseGuards(PlatformUserJwtGuard)
-  @ApiBearerAuth()
+  @ApiBearerAuth('JWT')
+  @UseGuards(PlatformOrgApiKeyGuard)
+  @ApiSecurity('X-API-KEY')
   @ApiOperation({ summary: 'Get Screening Submissions of an Organisation' })
   @ApiResponse({
     status: 200,
@@ -125,15 +165,17 @@ export class PlatformScreeningSubmissionsController {
   })
   async getScreeningSubmissionsOfOrg(
     @Body() dto: GetPlatformScreeningSubmissionsOfOrgDto,
-  ) {
+  ): Promise<ApiResponseWrapper<PlatformScreeningSubmissionListResponseDto>> {
     const submissions =
       await this.platformScreeningSubmissionsService.getScreenerSubmissionsOfOrg(
         dto,
       );
 
-    return {
-      screeningSubmissions: submissions,
-    };
+    return new ApiResponseWrapper(
+      HttpStatus.OK,
+      'Screening Submissions',
+      submissions,
+    );
   }
 
   @Get('email-phone')
@@ -144,18 +186,26 @@ export class PlatformScreeningSubmissionsController {
     type: PlatformScreeningSubmissionResponseDto,
   })
   async getScreeningSubmissionsUsingEmailPhone(
-    @Body() dto: GetPlatformScreeningSubmissionUsingEmailOrPhoneDto,
-  ) {
+    @Query() dto: GetPlatformScreeningSubmissionUsingEmailOrPhoneDto,
+  ): Promise<ApiResponseWrapper<PlatformScreeningSubmissionResponseDto>> {
     const submission =
       await this.platformScreeningSubmissionsService.getScreeningSubmissionUsingEmailOrPhone(
         dto.jobId,
         dto.email,
         dto.phone,
       );
+
     if (submission) {
-      return submission;
+      return new ApiResponseWrapper(
+        HttpStatus.OK,
+        'Screening Submission',
+        submission,
+      );
     } else {
-      return { message: 'No Submission Found' };
+      throw new HttpException(
+        'Screening Submission not found',
+        HttpStatus.NOT_FOUND,
+      );
     }
   }
 
@@ -167,14 +217,29 @@ export class PlatformScreeningSubmissionsController {
   })
   async updateScreeningSubmissionChat(
     @Body() dto: UpdatePlatformScreeningSubmissionChatDto,
-  ) {
-    return this.platformScreeningSubmissionsService.updateScreeningSubmissionChat(
-      dto,
-    );
+  ): Promise<ApiResponseWrapper<any>> {
+    const success =
+      await this.platformScreeningSubmissionsService.updateScreeningSubmissionChat(
+        dto,
+      );
+
+    if (success) {
+      return new ApiResponseWrapper(
+        HttpStatus.OK,
+        'Screening Submission Chat Updated',
+        true,
+      );
+    } else {
+      throw new HttpException(
+        'Failed to update Screening Submission Chat',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
   }
 
   @Post('textFromAudio')
   @UseInterceptors(FileInterceptor('file'))
+  @ApiConsumes('multipart/form-data')
   @ApiOperation({ summary: 'Convert Audio to Text' })
   @ApiResponse({
     status: 200,
@@ -184,20 +249,30 @@ export class PlatformScreeningSubmissionsController {
   async convertAudioToText(
     @UploadedFile() file: Express.Multer.File,
     @Body() dto: GetTextFromAudioForPlatformScreeningSubmissionAnswerDto,
-  ) {
+  ): Promise<
+    ApiResponseWrapper<PlatformScreeningSubmissionTextFromAudioResponseDto>
+  > {
     const response =
       await this.platformScreeningSubmissionsService.getTextFromAudioForPlatformScreeningSubmissionAnswer(
         file,
         dto,
       );
 
-    return response;
+    if (response) {
+      return new ApiResponseWrapper(HttpStatus.OK, 'Text from Audio', response);
+    } else {
+      throw new HttpException(
+        'Failed to convert Audio to Text',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
   }
 
   @Put('view')
-  @UseGuards(PlatformOrgApiKeyGuard)
   @UseGuards(PlatformUserJwtGuard)
-  @ApiBearerAuth()
+  @ApiBearerAuth('JWT')
+  @UseGuards(PlatformOrgApiKeyGuard)
+  @ApiSecurity('X-API-KEY')
   @ApiOperation({ summary: 'Update Screening Submission View Status' })
   @ApiResponse({
     status: 200,
@@ -209,29 +284,31 @@ export class PlatformScreeningSubmissionsController {
   })
   async updateScreeningSubmissionViewStatus(
     @Query() dto: UpdatePlatformScreeningSubmissionViewStatusDto,
-  ) {
+  ): Promise<ApiResponseWrapper<any>> {
     const response =
       await this.platformScreeningSubmissionsService.updateViewStatus(
         dto.screeningSubmissionId,
       );
 
     if (response) {
-      return {
-        status: 200,
-        description: 'Screening Submission View Status Updated',
-      };
+      return new ApiResponseWrapper(
+        HttpStatus.OK,
+        'Screening Submission View Status Updated',
+        true,
+      );
     } else {
-      return {
-        status: 400,
-        description: 'Bad Request',
-      };
+      throw new HttpException(
+        'Failed to update Screening Submission View Status',
+        HttpStatus.BAD_REQUEST,
+      );
     }
   }
 
   @Put('status')
-  @UseGuards(PlatformOrgApiKeyGuard)
   @UseGuards(PlatformUserJwtGuard)
-  @ApiBearerAuth()
+  @ApiBearerAuth('JWT')
+  @UseGuards(PlatformOrgApiKeyGuard)
+  @ApiSecurity('X-API-KEY')
   @ApiOperation({ summary: 'Update Screening Submission Status' })
   @ApiResponse({
     status: 200,
@@ -243,22 +320,23 @@ export class PlatformScreeningSubmissionsController {
   })
   async updateScreeningSubmissionStatus(
     @Body() dto: UpdatePlatformScreeningSubmissionsStatusDto,
-  ) {
+  ): Promise<ApiResponseWrapper<any>> {
     const response =
       await this.platformScreeningSubmissionsService.updateScreeningSubmissionsStatus(
         dto.screeningSubmissionIds,
         dto.status,
       );
     if (response) {
-      return {
-        status: 200,
-        description: 'Screening Submission Status Updated',
-      };
+      return new ApiResponseWrapper(
+        HttpStatus.OK,
+        'Screening Submission Status Updated',
+        true,
+      );
     } else {
-      return {
-        status: 400,
-        description: 'Bad Request - Invalid Submission Ids',
-      };
+      throw new HttpException(
+        'Failed to update Screening Submission Status',
+        HttpStatus.BAD_REQUEST,
+      );
     }
   }
 
@@ -275,17 +353,27 @@ export class PlatformScreeningSubmissionsController {
   })
   async createScreeningStreamRoom(
     @Body() dto: CreatePlatformScreeningSubmissionStreamingRoomTokenDto,
-  ) {
+  ): Promise<
+    ApiResponseWrapper<PlatformScreeningSubmissionCreateStreamRoomResponseDto>
+  > {
     const response =
       await this.platformScreeningSubmissionsService.createScreeningSubmissionStreamingRoom(
-        dto.screeningJobId,
         dto.screeningSubmissionId,
+        dto.screeningJobId,
+     
         dto.currDateTimeEpoch,
       );
     if (response) {
-      return response;
+      return new ApiResponseWrapper(
+        HttpStatus.OK,
+        'Screening Submission Streaming Room Created',
+        response,
+      );
     } else {
-      return { message: 'Bad Request' };
+      throw new HttpException(
+        'Failed to create Screening Submission Streaming Room',
+        HttpStatus.BAD_REQUEST,
+      );
     }
   }
 }

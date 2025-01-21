@@ -3,8 +3,6 @@ import { Injectable } from '@nestjs/common';
 import { fromEnv } from '@aws-sdk/credential-providers';
 import { S3Client, PutObjectCommand } from '@aws-sdk/client-s3';
 import { Upload } from '@aws-sdk/lib-storage';
-import fs from 'fs';
-import path from 'path';
 
 const configAwsRegion = process.env.AWS_REGION || 'ap-south-1';
 

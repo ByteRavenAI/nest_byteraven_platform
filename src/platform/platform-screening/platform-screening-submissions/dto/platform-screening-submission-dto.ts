@@ -3,7 +3,7 @@ import {
   ScreeningQuestionTypeEnum,
   SubmissionStatusEnum,
 } from '@prisma/client';
-import { Type } from 'class-transformer';
+import { Transform, Type } from 'class-transformer';
 import {
   IsArray,
   IsBoolean,
@@ -46,11 +46,6 @@ export class ScreeningFormSubmissionQuestionDto {
 }
 
 export class CreatePlatformScreeningFormSubmissionDto {
-  @IsOptional()
-  @IsString()
-  @ApiProperty({ description: 'Screening Form Submission ID' })
-  screeningFormSubmissionId?: string;
-
   @IsString()
   @ApiProperty({ description: 'Organisation ID' })
   orgId: string;
@@ -242,7 +237,15 @@ export class GetTextFromAudioForPlatformScreeningSubmissionAnswerDto {
 
   @IsInt()
   @ApiProperty({ description: 'Index of the question' })
+  @Transform(({ value }) => parseInt(value, 10))
   index: number;
+
+  @ApiProperty({
+    description: 'The audio file of the answer',
+    type: 'string',
+    format: 'binary', // Required for file uploads in Swagger
+  })
+  file: any;
 
   @IsString()
   @ApiProperty({ description: 'File Type' })

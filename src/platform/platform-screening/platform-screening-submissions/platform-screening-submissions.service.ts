@@ -294,7 +294,7 @@ export class PlatformScreeningSubmissionsService {
         );
       return {
         accessToken: result,
-        url: this.config.get('LIVEKIT_URL') || '',
+        url: this.config.get('LIVEKIT_HOST') || '',
       };
     } catch (error) {
       this.logger.error(
@@ -331,13 +331,20 @@ export class PlatformScreeningSubmissionsService {
     dto: GetTextFromAudioForPlatformScreeningSubmissionAnswerDto,
   ): Promise<PlatformScreeningSubmissionTextFromAudioResponseDto> {
     try {
-      const uniqueFileName = `organisations/${dto.orgId}/screeningsubmissions/${dto.screeningSubmissionId}/${dto.index}.${dto.fileType}`;
+      // extension of file
+      const fileType = file.originalname.split('.').pop();
+      const uniqueFileName = `organisations/${dto.orgId}/screeningsubmissions/${dto.screeningSubmissionId}/${dto.index}.${fileType}`;
+      console.log('uniqueFileName', uniqueFileName);
+      console.log(file.path);
+      console.log(file.buffer);
 
       const text: string =
         await this.llmService.generateTextFromAudioUsingDeepgramService(
-          file.path,
+          file,
           file.mimetype,
         );
+
+      console.log(text);
 
       const audioUrl = await this.awsService.uploadFileToS3Service(
         this.config.get('AWS_S3_BUCKET_NAME') || '',
@@ -345,8 +352,15 @@ export class PlatformScreeningSubmissionsService {
         uniqueFileName,
       );
 
+      console.log(audioUrl);
+
       return { data: text, answerLocation: audioUrl?.url };
     } catch (error) {
+      this.logger.error(
+        `Unable to get text from audio for submission answer: ${error}`,
+        error.stack,
+        'PlatformScreeningSubmissionsService/getTextFromAudioForPlatformScreeningSubmissionAnswer',
+      );
       throw new Error('Unable to convert audio to text');
     }
   }

@@ -78,10 +78,6 @@ export class PlatformOrganisationController {
     @Body() dto: CreatePlatformOrganisationDto,
     @UploadedFile() file: Express.Multer.File,
   ) {
-    console.log('File' + file);
-    console.log(file.path);
-    console.log(file.buffer);
-
     const success = await this.organisationService.createOrganisation(
       file,
       dto,

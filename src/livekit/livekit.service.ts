@@ -104,6 +104,7 @@ export class LivekitService {
 
       return token;
     } catch (error) {
+      console.error('Error creating LiveKit participant token:', error);
       return '';
     }
   };

@@ -90,7 +90,7 @@ export class LlmService {
     }
   }
 
-  // return file 
+  // return file
   async generateAudioFromTextUsingEllevenLabsService(
     text: string,
   ): Promise<string> {
@@ -133,13 +133,15 @@ export class LlmService {
   }
 
   async generateTextFromAudioUsingDeepgramService(
-    filePath: string,
+    file: Express.Multer.File,
     contentType: string,
   ): Promise<string> {
     try {
       const response = await axios.post(
         'https://api.deepgram.com/v1/listen?model=nova-2&smart_format=true',
-        fs.createReadStream(filePath),
+        // fs.createReadStream(filePath),
+
+        file.buffer,
         {
           headers: {
             Authorization: `Token ${this.configDeepgramApiKey}`,
