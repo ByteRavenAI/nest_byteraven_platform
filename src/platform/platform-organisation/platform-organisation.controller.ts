@@ -34,6 +34,7 @@ import {
   ApiBearerAuth,
   ApiBasicAuth,
   ApiConsumes,
+  ApiSecurity,
 } from '@nestjs/swagger';
 import {
   CreateOrganisationBillingStripePaymentSessionDto,
@@ -240,8 +241,9 @@ export class PlatformOrganisationController {
     summary: 'Create Organisation Billing Stripe Payment Session',
   })
   @UseGuards(PlatformUserJwtGuard)
-  @UseGuards(PlatformOrgApiKeyGuard)
-  @ApiBearerAuth()
+  // @UseGuards(PlatformOrgApiKeyGuard)
+  @ApiBearerAuth('JWT')
+  // @ApiBasicAuth('X-API-KEY')
   @ApiResponse({
     status: 201,
     description: 'Payment Session created successfully',
@@ -286,7 +288,8 @@ export class PlatformOrganisationController {
   @ApiOperation({ summary: "Create an Organisation's Member Status" })
   @UseGuards(PlatformUserJwtGuard)
   @UseGuards(PlatformOrgApiKeyGuard)
-  @ApiBearerAuth()
+  @ApiBearerAuth('JWT')
+  @ApiSecurity('X-API-KEY')
   @ApiResponse({
     status: 201,
     description: 'Member Status Created',
@@ -314,7 +317,8 @@ export class PlatformOrganisationController {
   @ApiOperation({ summary: "Get an Organisation's Member Status" })
   @UseGuards(PlatformUserJwtGuard)
   @UseGuards(PlatformOrgApiKeyGuard)
-  @ApiBearerAuth()
+  @ApiBearerAuth('JWT')
+  @ApiBasicAuth('X-API-KEY')
   @ApiResponse({
     status: 200,
     description: 'Member Status Found',
@@ -343,23 +347,28 @@ export class PlatformOrganisationController {
     }
   }
 
-  @Post('member/getAll')
+  @Get('member/getAll')
   @ApiOperation({ summary: "Get all Organisation's Member Status" })
   @UseGuards(PlatformUserJwtGuard)
   @UseGuards(PlatformOrgApiKeyGuard)
-  @ApiBearerAuth()
+  @ApiBearerAuth('JWT')
+  @ApiSecurity('X-API-KEY')
   @ApiResponse({
     status: 200,
     description: 'Member Status Found',
     type: GetAllOrganisationMemberStatusOfOrgListResponseDto,
   })
   async getAllOrganisationMemberStatus(
-    @Query() dto: any,
+    @Req() req: Request,
   ): Promise<
     ApiResponseWrapper<GetAllOrganisationMemberStatusOfOrgListResponseDto>
   > {
+    const { orgId, orgAlias } = req.org as {
+      orgId: string;
+      orgAlias: string;
+    };
     const statuses =
-      await this.organisationService.getAllOrganisationMemberStatus(dto);
+      await this.organisationService.getAllOrganisationMemberStatus(orgId);
     if (statuses) {
       return new ApiResponseWrapper(
         HttpStatus.OK,
@@ -373,7 +382,8 @@ export class PlatformOrganisationController {
   @Put('member')
   @ApiOperation({ summary: "Update an Organisation's Member Status" })
   @UseGuards(PlatformUserJwtGuard)
-  @ApiBearerAuth()
+  @ApiBearerAuth('JWT')
+  @ApiBasicAuth('X-API-KEY')
   async updateOrganisationMemberStatus(
     @Body() dto: UpdateOrganisationMemberStatusDto,
   ): Promise<ApiResponseWrapper<any>> {

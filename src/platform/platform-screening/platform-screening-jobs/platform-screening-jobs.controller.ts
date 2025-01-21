@@ -2,15 +2,19 @@ import {
   Body,
   Controller,
   Get,
+  HttpException,
+  HttpStatus,
   Post,
   Query,
   Req,
+  UseFilters,
   UseGuards,
 } from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiOperation,
   ApiResponse,
+  ApiSecurity,
   ApiTags,
 } from '@nestjs/swagger';
 import { Request } from 'express';
@@ -23,9 +27,11 @@ import {
 } from './dto/platform-screening-job-dto';
 import { PlatformScreeningJobService } from './platform-screening-jobs.service';
 import { PlatformOrgApiKeyGuard } from 'src/platform/platform-auth/guard/apikey.guard';
+import { HttpExceptionFilter } from 'src/helpers/http-exception-filter';
+import { ApiResponseWrapper } from 'src/helpers/http-response-wrapper';
 
+@UseFilters(HttpExceptionFilter)
 @ApiTags('Platform Screening Jobs')
-@UseGuards(PlatformUserJwtGuard)
 @Controller('platform-screening-jobs')
 export class PlatformScreeningJobsController {
   constructor(
@@ -34,29 +40,48 @@ export class PlatformScreeningJobsController {
 
   @Post()
   @ApiOperation({ summary: 'Create a new Screening Job' })
-  @UseGuards(PlatformOrgApiKeyGuard)
   @UseGuards(PlatformUserJwtGuard)
-  @ApiBearerAuth()
+  @ApiBearerAuth('JWT')
+  @UseGuards(PlatformOrgApiKeyGuard)
+  @ApiSecurity('X-API-KEY')
   @ApiResponse({
     status: 201,
     description: 'Screening Job Created Successfully',
     type: PlatformScreeningJobResponseDto,
   })
-  async createScreeningJob(@Body() dto: PlatformCreateScreeningJobDto) {
-    const response =
-      await this.platformScreeningJobService.createScreeningJob(dto);
+  async createScreeningJob(
+    @Req() req: Request,
+    @Body() dto: PlatformCreateScreeningJobDto,
+  ): Promise<ApiResponseWrapper<PlatformScreeningJobResponseDto>> {
+    const { orgId, orgAlias } = req.org as {
+      orgId: string;
+      orgAlias: string;
+    };
+    const response = await this.platformScreeningJobService.createScreeningJob(
+      dto,
+      orgId,
+      orgAlias,
+    );
     if (response) {
-      return response;
+      return new ApiResponseWrapper(
+        HttpStatus.CREATED,
+        'Screening Job Created Successfully',
+        response,
+      );
     } else {
-      return { message: 'Error Creating Screening Job' };
+      throw new HttpException(
+        'Failed to create Screening Job',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
   }
 
   @Get('org')
   @ApiOperation({ summary: 'Get all Screening Jobs of Organisation' })
-  @UseGuards(PlatformOrgApiKeyGuard)
   @UseGuards(PlatformUserJwtGuard)
-  @ApiBearerAuth()
+  @ApiBearerAuth('JWT')
+  @UseGuards(PlatformOrgApiKeyGuard)
+  @ApiSecurity('X-API-KEY')
   @ApiResponse({
     status: 200,
     description: 'Screening Jobs of Organisation',
@@ -66,9 +91,11 @@ export class PlatformScreeningJobsController {
     status: 404,
     description: 'No Screening Jobs Found for Organisation',
   })
-  async getScreeningJobsOfOrg(@Req() req: Request) {
+  async getScreeningJobsOfOrg(
+    @Req() req: Request,
+  ): Promise<ApiResponseWrapper<PlatformScreeningJobListResponseDto>> {
     // Access organization details from req.user
-    const { orgId, orgAlias } = req.user as {
+    const { orgId, orgAlias } = req.org as {
       orgId: string;
       orgAlias: string;
     };
@@ -76,9 +103,16 @@ export class PlatformScreeningJobsController {
       await this.platformScreeningJobService.getScreeningJobsOfOrg(orgId);
 
     if (jobs.length > 0) {
-      return jobs;
+      return new ApiResponseWrapper(
+        HttpStatus.OK,
+        'Screening Jobs of Organisation',
+        { screeningJobs: jobs },
+      );
     } else {
-      return { message: 'No Screening Jobs Found for Organisation' };
+      throw new HttpException(
+        'No Screening Jobs Found for Organisation',
+        HttpStatus.NOT_FOUND,
+      );
     }
   }
 
@@ -93,15 +127,17 @@ export class PlatformScreeningJobsController {
     status: 404,
     description: 'No Screening Job Found',
   })
-  async getScreeningJobUsingId(@Query() dto: PlatformGetScreeningJobByIdDto) {
+  async getScreeningJobUsingId(
+    @Query() dto: PlatformGetScreeningJobByIdDto,
+  ): Promise<ApiResponseWrapper<PlatformScreeningJobResponseDto>> {
     const job = await this.platformScreeningJobService.getScreeningJobById(
       dto.screeningJobId,
     );
 
     if (job) {
-      return job;
+      return new ApiResponseWrapper(HttpStatus.OK, 'Screening Job Found', job);
     } else {
-      return { message: 'No Screening Job Found' };
+      throw new HttpException('No Screening Job Found', HttpStatus.NOT_FOUND);
     }
   }
 }

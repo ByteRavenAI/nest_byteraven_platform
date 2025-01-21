@@ -9,19 +9,6 @@ import {
 } from 'class-validator';
 
 export class PlatformCreateScreeningJobDto {
-  @IsOptional()
-  @IsString()
-  @ApiProperty({ description: 'Screening Job Id' })
-  screeningJobId?: string;
-
-  @IsString()
-  @ApiProperty({ description: 'Organisation ID' })
-  orgId: string;
-
-  @IsString()
-  @ApiProperty({ description: 'Organisation alias' })
-  orgAlias: string;
-
   @IsString()
   @ApiProperty({ description: 'Screening Template ID' })
   screeningTemplateId: string;

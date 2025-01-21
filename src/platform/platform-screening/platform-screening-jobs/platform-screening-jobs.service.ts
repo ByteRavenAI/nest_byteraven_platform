@@ -14,10 +14,21 @@ export class PlatformScreeningJobService {
 
   async createScreeningJob(
     dto: PlatformCreateScreeningJobDto,
+    orgId: string,
+    orgAlias: string,
   ): Promise<PlatformScreeningJobResponseDto> {
     try {
       const screeningJob = await this.prisma.screeningJob.create({
-        data: dto,
+        data: {
+          orgId,
+          orgAlias,
+          title: dto.title,
+          jd: dto.jd,
+          upvotes: [],
+          createdAt: dto.createdAt,
+          screeningTemplateId: dto.screeningTemplateId,
+          jobActive: dto.jobActive,
+        },
       });
       return screeningJob;
     } catch (error) {
@@ -40,6 +51,9 @@ export class PlatformScreeningJobService {
       if (!screeningJob) {
         throw new NotFoundException('Screening job not found');
       }
+
+      screeningJob.screeningJobId = screeningJob.id;
+
       return screeningJob;
     } catch (error) {
       this.logger.error(
@@ -60,6 +74,14 @@ export class PlatformScreeningJobService {
           orgId,
         },
       });
+
+      for(let i = 0; i < screeningJobs.length; i++) {
+        screeningJobs[i] = {
+          screeningJobId: screeningJobs[i].id,
+          ...screeningJobs[i],
+        }
+      }
+
       return screeningJobs;
     } catch (error) {
       this.logger.error(

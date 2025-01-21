@@ -23,6 +23,8 @@ export class PlatformScreeningTemplatesService {
   ) {}
 
   async createScreeningTemplate(
+    orgId: string,
+    orgAlias: string,
     dto: CreateScreeningTemplateDto,
   ): Promise<boolean> {
     try {
@@ -39,7 +41,7 @@ export class PlatformScreeningTemplatesService {
         if (audio != null) {
           const audioFileName = `${uuidv4()}.mp3`;
 
-          const uniqueFileName = `organisations/${dto.orgId}/screeningtemplatequestions/${audioFileName}`;
+          const uniqueFileName = `organisations/${orgId}/screeningtemplatequestions/${audioFileName}`;
 
           // create file from path audio
           const file: Express.Multer.File = {
@@ -72,7 +74,16 @@ export class PlatformScreeningTemplatesService {
       }
 
       const result = await this.prisma.screeningTemplate.create({
-        data: dto,
+        data: {
+          orgId: orgId,
+          orgAlias: orgAlias,
+          title: dto.title,
+          questions: dto.questions,
+          description: dto.description,
+          prompt: dto.prompt,
+          isStreaming: dto.isStreaming,
+          createdAt: dto.createdAt,
+        },
       });
 
       return true;

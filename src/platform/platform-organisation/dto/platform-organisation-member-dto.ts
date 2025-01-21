@@ -123,6 +123,12 @@ export class GetOrganisationMemberStatusResponseDto {
 }
 
 export class GetAllOrganisationMemberStatusOfOrgListResponseDto {
-  @ApiProperty({ description: 'Organisation Member Status' })
-  data: GetOrganisationMemberStatusResponseDto[];
+  @ApiProperty({ description: 'Accpeted Members Object List' })
+  acceptedMembers: any[];
+
+  @ApiProperty({ description: 'Sent Members Object List' })
+  sentMembers: any[];
+
+  @ApiProperty({ description: 'Super Admin' })
+  superAdmin: any;
 }

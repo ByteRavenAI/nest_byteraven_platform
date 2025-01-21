@@ -29,6 +29,7 @@ import {
 import { v4 as uuidv4 } from 'uuid';
 import { AwsService } from 'src/aws/aws.service';
 import { ConfigService } from '@nestjs/config';
+import { last } from 'rxjs';
 
 @Injectable()
 export class PlatformOrganisationService {
@@ -467,6 +468,39 @@ export class PlatformOrganisationService {
     dto: CreateOrganisationMemberStatusDto,
   ): Promise<boolean> {
     try {
+      // get the platformUserId we are trying to add
+      const platformUserId: string = dto.platformUserId;
+
+      // get the user
+      // const user = await this.prisma.platformUser.findUnique({
+      //   where: { id: platformUserId },
+      // });
+
+      // get the organisation
+      const organisation = await this.prisma.organisation.findUnique({
+        where: { id: dto.orgId },
+      });
+
+      // check if user already exists in the organisation super admins or admins
+      if (
+        organisation.orgSuperAdmin == platformUserId ||
+        organisation.orgAdmins.includes(platformUserId)
+      ) {
+        throw new Error('User already exists in the organisation');
+      }
+
+      // check if status is already created with this user and organisation
+      const status = await this.prisma.organisationMemberStatus.findFirst({
+        where: {
+          orgId: dto.orgId,
+          platformUserId: dto.platformUserId,
+        },
+      });
+
+      if (status) {
+        throw new Error('Organisation Member Status already exists');
+      }
+
       const response = await this.prisma.organisationMemberStatus.create({
         data: dto,
       });
@@ -486,7 +520,7 @@ export class PlatformOrganisationService {
 
   async getOrganisationMemberStatusOfaUser(
     dto: GetOrganisationMemberStatusOfUser,
-  ): Promise<GetOrganisationMemberStatusResponseDto> {
+  ): Promise<GetOrganisationMemberStatusResponseDto | null> {
     try {
       const result = await this.prisma.organisationMemberStatus.findFirst({
         where: {
@@ -496,9 +530,10 @@ export class PlatformOrganisationService {
       });
 
       if (result) {
+        result.organisationMemberStatusId = result.id;
         return result;
       } else {
-        throw new NotFoundException('Organisation Member Status not found');
+        return null;
       }
     } catch (error) {
       this.logger.error(
@@ -506,36 +541,78 @@ export class PlatformOrganisationService {
         error.stack,
         'PlatformOrganisationService/getOrganisationMemberStatusOfaUser',
       );
-      throw new Error('Unable to find organisation member status');
+      return null;
     }
   }
 
   async getAllOrganisationMemberStatus(
     orgId: string,
   ): Promise<GetAllOrganisationMemberStatusOfOrgListResponseDto> {
+    if (!orgId) {
+      this.logger.error(
+        'orgId is undefined',
+        'PlatformOrganisationService/getAllOrganisationMemberStatus',
+      );
+      throw new Error('orgId is required');
+    }
+
     try {
-      // TODO Get Super Admins and Admins both
-      const result = await this.prisma.organisationMemberStatus.findMany({
+      // get org
+      const org = await this.prisma.organisation.findUnique({
+        where: { id: orgId },
+      });
+
+      // get the accepted members
+      const acceptedMembers = await this.prisma.platformUser.findMany({
         where: {
-          orgId: orgId,
+          id: {
+            in: org.orgAdmins,
+          },
+
+          // or superAdmin is the orgSuperAdmin
         },
       });
 
-      if (result) {
-        const statuses = result.map((status) => {
-          return {
-            orgMemberStatusId: status.organisationMemberStatusId,
-            status: status.status.toString(),
-            ...status,
-          };
-        });
+      // get the superAdmin of the org
+      const superAdmin = await this.prisma.platformUser.findUnique({
+        where: { id: org.orgSuperAdmin },
+      });
 
+      // only get their names, emails, platformUserIds and dpUrls
+      const acceptedMembersResponse = acceptedMembers.map((member) => {
         return {
-          data: statuses,
+          platformUserId: member.id,
+          firstName: member.firstName,
+          lastName: member.lastName,
+          email: member.email,
+          dpUrl: member.dpUrl,
         };
-      } else {
-        throw new NotFoundException('Organisation Member Status not found');
+      });
+
+      // get the pending members with status sent
+      const sentMembers = await this.prisma.organisationMemberStatus.findMany({
+        where: {
+          orgId: orgId,
+          status: OrganisationMemberStatusEnum.sent,
+        },
+      });
+
+      // for loop
+      for (let i = 0; i < sentMembers.length; i++) {
+        sentMembers[i]['organisationMemberStatusId'] = sentMembers[i].id;
       }
+
+      return {
+        acceptedMembers: acceptedMembersResponse,
+        sentMembers: sentMembers,
+        superAdmin: {
+          platformUserId: superAdmin.id,
+          firstName: superAdmin.firstName,
+          lastName: superAdmin.lastName,
+          email: superAdmin.email,
+          dpUrl: superAdmin.dpUrl,
+        },
+      };
     } catch (error) {
       this.logger.error(
         `Unable to find organisation member status: ${error}`,
@@ -552,14 +629,14 @@ export class PlatformOrganisationService {
       const orgMemberStatus: any =
         await this.prisma.organisationMemberStatus.findFirst({
           where: {
-            organisationMemberStatusId: dto.orgMemberStatusId,
+            id: dto.orgMemberStatusId,
           },
         });
 
       if (orgMemberStatus) {
         const result = await this.prisma.organisationMemberStatus.update({
           where: {
-            organisationMemberStatusId: dto.orgMemberStatusId,
+            id: dto.orgMemberStatusId,
           },
           data: {
             status: dto.status,

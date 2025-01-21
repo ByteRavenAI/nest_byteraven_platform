@@ -1,4 +1,14 @@
-import { Body, Controller, Get, Post, Req, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpException,
+  HttpStatus,
+  Post,
+  Req,
+  UseFilters,
+  UseGuards,
+} from '@nestjs/common';
 import { Request } from 'express'; // Import Request
 import { PlatformScreeningTemplatesService } from './platform-screening-templates.service';
 import {
@@ -11,14 +21,15 @@ import {
   ApiBearerAuth,
   ApiOperation,
   ApiResponse,
+  ApiSecurity,
   ApiTags,
 } from '@nestjs/swagger';
 import { PlatformUserJwtGuard } from 'src/platform/platform-auth/guard/jwt.guard';
 import { PlatformOrgApiKeyGuard } from 'src/platform/platform-auth/guard/apikey.guard';
+import { ApiResponseWrapper } from 'src/helpers/http-response-wrapper';
+import { HttpExceptionFilter } from 'src/helpers/http-exception-filter';
 
-@UseGuards(PlatformOrgApiKeyGuard)
-@UseGuards(PlatformUserJwtGuard)
-@ApiBearerAuth()
+@UseFilters(HttpExceptionFilter)
 @ApiTags('Platform Screening Templates')
 @Controller('screeningTemplates')
 export class PlatformScreeningTemplatesController {
@@ -27,71 +38,106 @@ export class PlatformScreeningTemplatesController {
   ) {}
 
   @Post()
+  @UseGuards(PlatformUserJwtGuard)
+  @ApiBearerAuth('JWT')
+  @UseGuards(PlatformOrgApiKeyGuard)
+  @ApiSecurity('X-API-KEY')
   @ApiOperation({ summary: 'Create a new Screening Template' })
   @ApiResponse({
     status: 201,
     description: 'Screening Template Created',
-    type: CreatePlatformScreeningTemplateResponseDto,
   })
-  async createScreeningTemplate(@Body() dto: CreateScreeningTemplateDto) {
+  async createScreeningTemplate(
+    @Req() req: Request,
+    @Body() dto: CreateScreeningTemplateDto,
+  ): Promise<ApiResponseWrapper<any>> {
+    const { orgId, orgAlias } = req.org as {
+      orgId: string;
+      orgAlias: string;
+    };
     const success: boolean =
-      await this.platformScreeningTemplatesService.createScreeningTemplate(dto);
+      await this.platformScreeningTemplatesService.createScreeningTemplate(
+        orgId,
+        orgAlias,
+        dto,
+      );
     if (success) {
-      return {
-        success: true,
-        message: 'Screening Template Created',
-      };
+      return new ApiResponseWrapper(
+        HttpStatus.CREATED,
+        'Platform User created successfully',
+        success,
+      );
     } else {
-      return {
-        success: false,
-        message: 'Screening Template Creation Failed',
-      };
+      throw new HttpException(
+        'Failed to create Screening Template',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
   }
 
   @Get()
   @ApiOperation({ summary: 'Get all Screening Templates of Organisation' })
+  @UseGuards(PlatformUserJwtGuard)
+  @ApiBearerAuth('JWT')
+  @UseGuards(PlatformOrgApiKeyGuard)
+  @ApiSecurity('X-API-KEY')
   @ApiResponse({
     status: 200,
     description: 'Screening Templates Fetched',
     type: GetAllPlatformScreeningTemplatesOfOrgResponseDto,
   })
-  async getScreeningTemplates(@Req() req: Request) {
-    // Access organization details from req.user
-    const { orgId, orgAlias } = req.user as {
-      orgId: string;
-      orgAlias: string;
-    };
+  async getScreeningTemplates(
+    @Req() req: Request,
+  ): Promise<
+    ApiResponseWrapper<GetAllPlatformScreeningTemplatesOfOrgResponseDto>
+  > {
+    try {
+      // Access organization details from req.user
+      const { orgId, orgAlias } = req.org as {
+        orgId: string;
+        orgAlias: string;
+      };
 
-    const templates =
-      await this.platformScreeningTemplatesService.getScreeningTemplatesOfOrg(
-        orgId, // Pass the orgId here
+      const templates =
+        await this.platformScreeningTemplatesService.getScreeningTemplatesOfOrg(
+          orgId, // Pass the orgId here
+        );
+
+      return new ApiResponseWrapper(
+        HttpStatus.OK,
+        'Screening Templates Fetched',
+        templates,
       );
-
-    return {
-      success: true,
-      data: templates,
-    };
+    } catch (error) {
+      throw new HttpException(
+        'Failed to fetch Screening Templates',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
+    }
   }
 
   @Post('generateQuestions')
   @ApiOperation({ summary: 'Generate Screening Template Questions' })
+  @UseGuards(PlatformUserJwtGuard)
+  @ApiBearerAuth('JWT')
+  @UseGuards(PlatformOrgApiKeyGuard)
+  @ApiSecurity('X-API-KEY')
   @ApiResponse({
     status: 200,
     description: 'Screening Template Questions Generated',
-    type: GetAllPlatformScreeningTemplatesOfOrgResponseDto,
   })
   async generateScreeningTemplateQuestions(
     @Body() dto: GenerateScreeningTemplateQuestionsDto,
-  ) {
+  ): Promise<ApiResponseWrapper<any>> {
     const questions =
       await this.platformScreeningTemplatesService.generateScreeningTemplateQuestions(
         dto.jobTitle, // Pass the orgId here
       );
 
-    return {
-      success: true,
+    return new ApiResponseWrapper(
+      HttpStatus.OK,
+      'Screening Template Questions Generated',
       questions,
-    };
+    );
   }
 }

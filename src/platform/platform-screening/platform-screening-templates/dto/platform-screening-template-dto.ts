@@ -41,18 +41,6 @@ export class CreateScreeningTemplateQuestionDto {
 }
 
 export class CreateScreeningTemplateDto {
-  // @IsOptional()
-  // @IsString()
-  // @ApiProperty({ description: 'Screening Template ID' })
-  // screeningTemplateId?: string;
-
-  @IsString()
-  @ApiProperty({ description: 'Organisation ID' })
-  orgId: string;
-
-  @IsString()
-  @ApiProperty({ description: 'Organisation Alias' })
-  orgAlias: string;
 
   @IsString()
   @ApiProperty({ description: 'Template Title' })
