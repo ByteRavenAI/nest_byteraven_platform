@@ -15,14 +15,12 @@ import {
 import { PlatformScreeningSubmissionsService } from './platform-screening-submissions.service';
 import { Express } from 'express';
 import {
-  ApiBearerAuth,
   ApiConsumes,
   ApiOperation,
   ApiResponse,
   ApiSecurity,
   ApiTags,
 } from '@nestjs/swagger';
-import { PlatformUserJwtGuard } from 'src/platform/platform-auth/guard/jwt.guard';
 import {
   CreatePlatformScreeningFormSubmissionDto,
   CreatePlatformScreeningSubmissionResponseDto,
@@ -47,7 +45,7 @@ import { ApiResponseWrapper } from 'src/helpers/http-response-wrapper';
 
 @UseFilters(HttpExceptionFilter)
 @ApiTags('Platform Screening Submissions')
-@Controller('screeningSubmissions')
+@Controller('platform/platform-screening-submission')
 export class PlatformScreeningSubmissionsController {
   constructor(
     private platformScreeningSubmissionsService: PlatformScreeningSubmissionsService,
@@ -88,8 +86,6 @@ export class PlatformScreeningSubmissionsController {
 
   @Get('jobId')
   @ApiOperation({ summary: 'Get Screening Submissions using Job ID' })
-  @UseGuards(PlatformUserJwtGuard)
-  @ApiBearerAuth('JWT')
   @UseGuards(PlatformOrgApiKeyGuard)
   @ApiSecurity('X-API-KEY')
   @ApiResponse({
@@ -120,8 +116,6 @@ export class PlatformScreeningSubmissionsController {
   }
 
   @Get('id')
-  @UseGuards(PlatformUserJwtGuard)
-  @ApiBearerAuth('JWT')
   @UseGuards(PlatformOrgApiKeyGuard)
   @ApiSecurity('X-API-KEY')
   @ApiResponse({
@@ -153,8 +147,6 @@ export class PlatformScreeningSubmissionsController {
   }
 
   @Post('org/filters')
-  @UseGuards(PlatformUserJwtGuard)
-  @ApiBearerAuth('JWT')
   @UseGuards(PlatformOrgApiKeyGuard)
   @ApiSecurity('X-API-KEY')
   @ApiOperation({ summary: 'Get Screening Submissions of an Organisation' })
@@ -269,8 +261,6 @@ export class PlatformScreeningSubmissionsController {
   }
 
   @Put('view')
-  @UseGuards(PlatformUserJwtGuard)
-  @ApiBearerAuth('JWT')
   @UseGuards(PlatformOrgApiKeyGuard)
   @ApiSecurity('X-API-KEY')
   @ApiOperation({ summary: 'Update Screening Submission View Status' })
@@ -305,8 +295,6 @@ export class PlatformScreeningSubmissionsController {
   }
 
   @Put('status')
-  @UseGuards(PlatformUserJwtGuard)
-  @ApiBearerAuth('JWT')
   @UseGuards(PlatformOrgApiKeyGuard)
   @ApiSecurity('X-API-KEY')
   @ApiOperation({ summary: 'Update Screening Submission Status' })
@@ -360,7 +348,7 @@ export class PlatformScreeningSubmissionsController {
       await this.platformScreeningSubmissionsService.createScreeningSubmissionStreamingRoom(
         dto.screeningSubmissionId,
         dto.screeningJobId,
-     
+
         dto.currDateTimeEpoch,
       );
     if (response) {

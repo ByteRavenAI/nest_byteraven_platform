@@ -24,7 +24,8 @@ import {
   ApiTags,
   ApiOperation,
   ApiResponse,
-  ApiBearerAuth
+  ApiBearerAuth,
+  ApiExcludeController
 
 } from '@nestjs/swagger';
 import { PlatformUserJwtGuard } from '../platform-auth/guard/jwt.guard';
@@ -32,7 +33,8 @@ import { HttpExceptionFilter } from 'src/helpers/http-exception-filter';
 import { ApiResponseWrapper } from 'src/helpers/http-response-wrapper';
 
 @ApiTags('Platform User')
-@Controller('platform/platformUser')
+@Controller('platform/platform-user')
+@ApiExcludeController()
 @UseFilters(HttpExceptionFilter)
 export class PlatformUserController {
   constructor(

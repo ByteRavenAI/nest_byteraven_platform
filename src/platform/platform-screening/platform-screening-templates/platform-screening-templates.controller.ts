@@ -12,34 +12,29 @@ import {
 import { Request } from 'express'; // Import Request
 import { PlatformScreeningTemplatesService } from './platform-screening-templates.service';
 import {
-  CreatePlatformScreeningTemplateResponseDto,
   CreateScreeningTemplateDto,
   GenerateScreeningTemplateQuestionsDto,
   GetAllPlatformScreeningTemplatesOfOrgResponseDto,
 } from './dto/platform-screening-template-dto';
 import {
-  ApiBearerAuth,
   ApiOperation,
   ApiResponse,
   ApiSecurity,
   ApiTags,
 } from '@nestjs/swagger';
-import { PlatformUserJwtGuard } from 'src/platform/platform-auth/guard/jwt.guard';
 import { PlatformOrgApiKeyGuard } from 'src/platform/platform-auth/guard/apikey.guard';
 import { ApiResponseWrapper } from 'src/helpers/http-response-wrapper';
 import { HttpExceptionFilter } from 'src/helpers/http-exception-filter';
 
 @UseFilters(HttpExceptionFilter)
 @ApiTags('Platform Screening Templates')
-@Controller('screeningTemplates')
+@Controller('platform/platform-screening-template')
 export class PlatformScreeningTemplatesController {
   constructor(
     private platformScreeningTemplatesService: PlatformScreeningTemplatesService,
   ) {}
 
   @Post()
-  @UseGuards(PlatformUserJwtGuard)
-  @ApiBearerAuth('JWT')
   @UseGuards(PlatformOrgApiKeyGuard)
   @ApiSecurity('X-API-KEY')
   @ApiOperation({ summary: 'Create a new Screening Template' })
@@ -77,8 +72,6 @@ export class PlatformScreeningTemplatesController {
 
   @Get()
   @ApiOperation({ summary: 'Get all Screening Templates of Organisation' })
-  @UseGuards(PlatformUserJwtGuard)
-  @ApiBearerAuth('JWT')
   @UseGuards(PlatformOrgApiKeyGuard)
   @ApiSecurity('X-API-KEY')
   @ApiResponse({
@@ -92,7 +85,6 @@ export class PlatformScreeningTemplatesController {
     ApiResponseWrapper<GetAllPlatformScreeningTemplatesOfOrgResponseDto>
   > {
     try {
-      // Access organization details from req.user
       const { orgId, orgAlias } = req.org as {
         orgId: string;
         orgAlias: string;
@@ -118,8 +110,6 @@ export class PlatformScreeningTemplatesController {
 
   @Post('generateQuestions')
   @ApiOperation({ summary: 'Generate Screening Template Questions' })
-  @UseGuards(PlatformUserJwtGuard)
-  @ApiBearerAuth('JWT')
   @UseGuards(PlatformOrgApiKeyGuard)
   @ApiSecurity('X-API-KEY')
   @ApiResponse({

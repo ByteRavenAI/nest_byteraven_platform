@@ -11,14 +11,12 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import {
-  ApiBearerAuth,
   ApiOperation,
   ApiResponse,
   ApiSecurity,
   ApiTags,
 } from '@nestjs/swagger';
 import { Request } from 'express';
-import { PlatformUserJwtGuard } from 'src/platform/platform-auth/guard/jwt.guard';
 import {
   PlatformCreateScreeningJobDto,
   PlatformGetScreeningJobByIdDto,
@@ -32,7 +30,7 @@ import { ApiResponseWrapper } from 'src/helpers/http-response-wrapper';
 
 @UseFilters(HttpExceptionFilter)
 @ApiTags('Platform Screening Jobs')
-@Controller('platform-screening-jobs')
+@Controller('platform/platform-screening-job')
 export class PlatformScreeningJobsController {
   constructor(
     private platformScreeningJobService: PlatformScreeningJobService,
@@ -40,8 +38,6 @@ export class PlatformScreeningJobsController {
 
   @Post()
   @ApiOperation({ summary: 'Create a new Screening Job' })
-  @UseGuards(PlatformUserJwtGuard)
-  @ApiBearerAuth('JWT')
   @UseGuards(PlatformOrgApiKeyGuard)
   @ApiSecurity('X-API-KEY')
   @ApiResponse({
@@ -78,8 +74,6 @@ export class PlatformScreeningJobsController {
 
   @Get('org')
   @ApiOperation({ summary: 'Get all Screening Jobs of Organisation' })
-  @UseGuards(PlatformUserJwtGuard)
-  @ApiBearerAuth('JWT')
   @UseGuards(PlatformOrgApiKeyGuard)
   @ApiSecurity('X-API-KEY')
   @ApiResponse({

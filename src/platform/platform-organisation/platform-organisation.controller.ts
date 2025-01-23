@@ -35,6 +35,7 @@ import {
   ApiBasicAuth,
   ApiConsumes,
   ApiSecurity,
+  ApiExcludeController,
 } from '@nestjs/swagger';
 import {
   CreateOrganisationBillingStripePaymentSessionDto,
@@ -55,7 +56,8 @@ import { ApiResponseWrapper } from 'src/helpers/http-response-wrapper';
 import { FileInterceptor } from '@nestjs/platform-express';
 
 @ApiTags('Platform Organisation')
-@Controller('organisation')
+@ApiExcludeController()
+@Controller('platform/platform-organisation')
 @UseFilters(HttpExceptionFilter)
 export class PlatformOrganisationController {
   constructor(private organisationService: PlatformOrganisationService) {}
@@ -100,9 +102,7 @@ export class PlatformOrganisationController {
   @Get()
   @ApiOperation({ summary: 'Get Organisation by Id' })
   @UseGuards(PlatformUserJwtGuard)
-  // @UseGuards(PlatformOrgApiKeyGuard)
   @ApiBearerAuth('JWT')
-  // @ApiBasicAuth('API_KEY')
   @ApiResponse({
     status: 200,
     description: 'Organisation Found',
@@ -131,9 +131,7 @@ export class PlatformOrganisationController {
   @Get('admin')
   @ApiOperation({ summary: 'Get Organisations by Admin Id' })
   @UseGuards(PlatformUserJwtGuard)
-  // @UseGuards(PlatformOrgApiKeyGuard)
   @ApiBearerAuth('JWT')
-  // @ApiBasicAuth('API_KEY')
   @ApiResponse({
     status: 200,
     description: 'Organisations Found',
@@ -160,9 +158,7 @@ export class PlatformOrganisationController {
   @Get('api-key')
   @ApiOperation({ summary: 'Get Organisation API Key' })
   @UseGuards(PlatformUserJwtGuard)
-  // @UseGuards(PlatformOrgApiKeyGuard)
   @ApiBearerAuth('JWT')
-  // @ApiBasicAuth('API_KEY')
   @ApiResponse({
     status: 200,
     description: 'Organisation API Key Found',
@@ -173,13 +169,8 @@ export class PlatformOrganisationController {
     description: 'Bad Request',
   })
   async getOrganisationApiKey(
-    // @Req() req: Request,
     @Query() dto: GetPlatformOrganisationApiKeyDto,
   ): Promise<ApiResponseWrapper<GetPlatformOrganisationApiKeyResponseDto>> {
-    // const { orgId, orgAlias } = req.user as {
-    //   orgId: string;
-    //   orgAlias: string;
-    // };
     const response = await this.organisationService.getOrganisationApiKey(
       dto.organisationId,
     );
@@ -200,9 +191,9 @@ export class PlatformOrganisationController {
   @Get('billing')
   @ApiOperation({ summary: 'Get Organisation Billing' })
   @UseGuards(PlatformUserJwtGuard)
-  // @UseGuards(PlatformOrgApiKeyGuard)
+  @UseGuards(PlatformOrgApiKeyGuard)
   @ApiBearerAuth('JWT')
-  // @ApiBasicAuth('X-API-KEY')
+  @ApiBasicAuth('X-API-KEY')
   @ApiResponse({
     status: 200,
     description: 'Organisation Billing Found',
@@ -237,9 +228,9 @@ export class PlatformOrganisationController {
     summary: 'Create Organisation Billing Stripe Payment Session',
   })
   @UseGuards(PlatformUserJwtGuard)
-  // @UseGuards(PlatformOrgApiKeyGuard)
+  @UseGuards(PlatformOrgApiKeyGuard)
   @ApiBearerAuth('JWT')
-  // @ApiBasicAuth('X-API-KEY')
+  @ApiBasicAuth('X-API-KEY')
   @ApiResponse({
     status: 201,
     description: 'Payment Session created successfully',
@@ -399,14 +390,4 @@ export class PlatformOrganisationController {
       );
     }
   }
-
-  // @Post('member/platformUser')
-  // @ApiOperation({
-  //   summary: "Get an Organisation's Member Statuses of Platform User",
-  // })
-  // async getOrganisationMemberStatusOfPlatformUser(@Body() dto: any) {
-  //   return this.organisationService.getOrganisationMemberStatusOfPlatformUser(
-  //     dto,
-  //   );
-  // }
 }
