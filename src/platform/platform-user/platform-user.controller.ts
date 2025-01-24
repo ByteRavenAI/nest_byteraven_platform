@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Get,
+  Header,
   HttpException,
   HttpStatus,
   Inject,
@@ -25,8 +26,7 @@ import {
   ApiOperation,
   ApiResponse,
   ApiBearerAuth,
-  ApiExcludeController
-
+  ApiExcludeController,
 } from '@nestjs/swagger';
 import { PlatformUserJwtGuard } from '../platform-auth/guard/jwt.guard';
 import { HttpExceptionFilter } from 'src/helpers/http-exception-filter';
@@ -43,11 +43,12 @@ export class PlatformUserController {
   ) {}
 
   @Post()
+  @Header('Content-Type', 'application/json')
   @ApiOperation({ summary: 'Create a new Platform User' })
   @ApiResponse({
     status: 201,
     description: 'Platform User created successfully',
-    type: PlatformUserResponseDto,
+    type: ApiResponseWrapper<PlatformUserResponseDto>,
   })
   @ApiResponse({ status: 500, description: 'Failed to create Platform User' })
   async createPlatformUser(
@@ -69,10 +70,11 @@ export class PlatformUserController {
   }
 
   @Get('get/email')
+  @Header('Content-Type', 'application/json')
   @ApiResponse({
     status: 200,
     description: 'Platform User found',
-    type: PlatformUserResponseDto,
+    type: ApiResponseWrapper<PlatformUserResponseDto>,
   })
   @ApiResponse({ status: 404, description: 'Platform User not found' })
   @ApiOperation({ summary: 'Get the Platform User by email' })
@@ -93,13 +95,14 @@ export class PlatformUserController {
   }
 
   @Get('get/id')
+  @Header('Content-Type', 'application/json')
   @ApiBearerAuth('JWT')
   @UseGuards(PlatformUserJwtGuard)
   @ApiOperation({ summary: 'Get the Platform User by id' })
   @ApiResponse({
     status: 200,
     description: 'Platform User found',
-    type: PlatformUserResponseDto,
+    type: ApiResponseWrapper<PlatformUserResponseDto>,
   })
   @ApiResponse({ status: 404, description: 'Platform User not found' })
   async getPlatformUserViaId(
@@ -119,13 +122,14 @@ export class PlatformUserController {
   }
 
   @Get('getAuthToken')
+  @Header('Content-Type', 'application/json')
   @ApiOperation({
     summary: 'Create & Get a signed JWT token for the Platform User',
   })
   @ApiResponse({
     status: 200,
     description: 'JWT token created',
-    type: PlatformUserJwtResponseDto,
+    type: ApiResponseWrapper<PlatformUserJwtResponseDto>,
   })
   @ApiResponse({ status: 404, description: 'User not Found' })
   async getJwtForPlatformUser(

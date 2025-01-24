@@ -41,7 +41,6 @@ export class CreateScreeningTemplateQuestionDto {
 }
 
 export class CreateScreeningTemplateDto {
-
   @IsString()
   @ApiProperty({ description: 'Template Title' })
   title: string;
@@ -81,19 +80,22 @@ export class GenerateScreeningTemplateQuestionsDto {
 // Response DTOs
 
 export class CreatePlatformScreeningTemplateResponseDto {
-  @ApiProperty({ description: 'Response Message' })
+  @ApiProperty({ description: 'Response Message', type: String })
   message: string;
 
-  @ApiProperty({ description: 'Success' })
+  @ApiProperty({ description: 'Success', type: Boolean })
   success: boolean;
 }
 
 export class GetAllPlatformScreeningTemplatesOfOrgResponseDto {
-  @ApiProperty({ description: 'Screening Templates' })
+  @ApiProperty({
+    description: 'Screening Templates',
+    type: [CreateScreeningTemplateDto],
+  })
   screeningTemplates: CreateScreeningTemplateDto[];
 }
 
 export class GenerateScreeningTemplateQuestionsResponseDto {
-  @ApiProperty({ description: 'Screening Template Questions' })
+  @ApiProperty({ description: 'Screening Template Questions', type: [String] })
   questions: string[];
 }

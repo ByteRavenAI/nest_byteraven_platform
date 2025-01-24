@@ -1,0 +1,1 @@
+openapi-generator-cli generate -i http://localhost:3000/api-json -o C:/Users/admin/Documents/ByteRaven_Docs/screening_ai_python -g python --additional-properties=packageName=screening_ai,projectName=screening-ai,usePydantic=true

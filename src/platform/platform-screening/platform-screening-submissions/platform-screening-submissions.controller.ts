@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Get,
+  Header,
   HttpException,
   HttpStatus,
   Post,
@@ -20,6 +21,7 @@ import {
   ApiResponse,
   ApiSecurity,
   ApiTags,
+  getSchemaPath,
 } from '@nestjs/swagger';
 import {
   CreatePlatformScreeningFormSubmissionDto,
@@ -52,11 +54,12 @@ export class PlatformScreeningSubmissionsController {
   ) {}
 
   @Post()
+  @Header('Content-Type', 'application/json')
   @ApiOperation({ summary: 'Create a new Screening Submission' })
   @ApiResponse({
     status: 201,
     description: 'Screening Submission Created',
-    type: CreatePlatformScreeningSubmissionResponseDto,
+    type: ApiResponseWrapper<CreatePlatformScreeningSubmissionResponseDto>,
   })
   @ApiResponse({
     status: 400,
@@ -85,13 +88,14 @@ export class PlatformScreeningSubmissionsController {
   }
 
   @Get('jobId')
+  @Header('Content-Type', 'application/json')
   @ApiOperation({ summary: 'Get Screening Submissions using Job ID' })
   @UseGuards(PlatformOrgApiKeyGuard)
   @ApiSecurity('X-API-KEY')
   @ApiResponse({
     status: 200,
     description: 'Screening Submissions',
-    type: PlatformScreeningSubmissionListResponseDto,
+    type: ApiResponseWrapper<PlatformScreeningSubmissionListResponseDto>,
   })
   async getScreeningSubmissionsUsingJobId(
     @Query() dto: GetPlatformScreeningSubmissionsUsingJobIdDto,
@@ -116,12 +120,13 @@ export class PlatformScreeningSubmissionsController {
   }
 
   @Get('id')
+  @Header('Content-Type', 'application/json')
   @UseGuards(PlatformOrgApiKeyGuard)
   @ApiSecurity('X-API-KEY')
   @ApiResponse({
     status: 200,
     description: 'Screening Submission',
-    type: PlatformScreeningSubmissionResponseDto,
+    type: ApiResponseWrapper<PlatformScreeningSubmissionResponseDto>,
   })
   @ApiOperation({ summary: 'Get Screening Submission using ID' })
   async getScreeningSubmissionUsingId(
@@ -147,13 +152,14 @@ export class PlatformScreeningSubmissionsController {
   }
 
   @Post('org/filters')
+  @Header('Content-Type', 'application/json')
   @UseGuards(PlatformOrgApiKeyGuard)
   @ApiSecurity('X-API-KEY')
   @ApiOperation({ summary: 'Get Screening Submissions of an Organisation' })
   @ApiResponse({
     status: 200,
     description: 'Screening Submissions',
-    type: PlatformScreeningSubmissionListResponseDto,
+    type: ApiResponseWrapper<PlatformScreeningSubmissionListResponseDto>,
   })
   async getScreeningSubmissionsOfOrg(
     @Body() dto: GetPlatformScreeningSubmissionsOfOrgDto,
@@ -171,11 +177,12 @@ export class PlatformScreeningSubmissionsController {
   }
 
   @Get('email-phone')
+  @Header('Content-Type', 'application/json')
   @ApiOperation({ summary: 'Get Screening Submission using Email ir Phone' })
   @ApiResponse({
     status: 200,
     description: 'Screening Submission',
-    type: PlatformScreeningSubmissionResponseDto,
+    type: ApiResponseWrapper<PlatformScreeningSubmissionResponseDto>,
   })
   async getScreeningSubmissionsUsingEmailPhone(
     @Query() dto: GetPlatformScreeningSubmissionUsingEmailOrPhoneDto,
@@ -202,14 +209,16 @@ export class PlatformScreeningSubmissionsController {
   }
 
   @Put()
+  @Header('Content-Type', 'application/json')
   @ApiOperation({ summary: 'Update Screening Submission Chat Objects' })
   @ApiResponse({
     status: 200,
     description: 'Screening Submission Chat Updated',
+    type: ApiResponseWrapper<boolean>,
   })
   async updateScreeningSubmissionChat(
     @Body() dto: UpdatePlatformScreeningSubmissionChatDto,
-  ): Promise<ApiResponseWrapper<any>> {
+  ): Promise<ApiResponseWrapper<boolean>> {
     const success =
       await this.platformScreeningSubmissionsService.updateScreeningSubmissionChat(
         dto,
@@ -230,13 +239,14 @@ export class PlatformScreeningSubmissionsController {
   }
 
   @Post('textFromAudio')
+  @Header('Content-Type', 'application/json')
   @UseInterceptors(FileInterceptor('file'))
   @ApiConsumes('multipart/form-data')
   @ApiOperation({ summary: 'Convert Audio to Text' })
   @ApiResponse({
     status: 200,
     description: 'Text from Audio',
-    type: PlatformScreeningSubmissionTextFromAudioResponseDto,
+    type: ApiResponseWrapper<PlatformScreeningSubmissionTextFromAudioResponseDto>,
   })
   async convertAudioToText(
     @UploadedFile() file: Express.Multer.File,
@@ -261,12 +271,14 @@ export class PlatformScreeningSubmissionsController {
   }
 
   @Put('view')
+  @Header('Content-Type', 'application/json')
   @UseGuards(PlatformOrgApiKeyGuard)
   @ApiSecurity('X-API-KEY')
   @ApiOperation({ summary: 'Update Screening Submission View Status' })
   @ApiResponse({
     status: 200,
     description: 'Screening Submission View Status Updated',
+    type: ApiResponseWrapper<boolean>,
   })
   @ApiResponse({
     status: 400,
@@ -274,7 +286,7 @@ export class PlatformScreeningSubmissionsController {
   })
   async updateScreeningSubmissionViewStatus(
     @Query() dto: UpdatePlatformScreeningSubmissionViewStatusDto,
-  ): Promise<ApiResponseWrapper<any>> {
+  ): Promise<ApiResponseWrapper<boolean>> {
     const response =
       await this.platformScreeningSubmissionsService.updateViewStatus(
         dto.screeningSubmissionId,
@@ -295,12 +307,14 @@ export class PlatformScreeningSubmissionsController {
   }
 
   @Put('status')
+  @Header('Content-Type', 'application/json')
   @UseGuards(PlatformOrgApiKeyGuard)
   @ApiSecurity('X-API-KEY')
   @ApiOperation({ summary: 'Update Screening Submission Status' })
   @ApiResponse({
     status: 200,
     description: 'Screening Submission Status Updated',
+    type: ApiResponseWrapper<boolean>,
   })
   @ApiResponse({
     status: 400,
@@ -308,7 +322,7 @@ export class PlatformScreeningSubmissionsController {
   })
   async updateScreeningSubmissionStatus(
     @Body() dto: UpdatePlatformScreeningSubmissionsStatusDto,
-  ): Promise<ApiResponseWrapper<any>> {
+  ): Promise<ApiResponseWrapper<boolean>> {
     const response =
       await this.platformScreeningSubmissionsService.updateScreeningSubmissionsStatus(
         dto.screeningSubmissionIds,
@@ -329,11 +343,12 @@ export class PlatformScreeningSubmissionsController {
   }
 
   @Post('stream/start')
+  @Header('Content-Type', 'application/json')
   @ApiOperation({ summary: 'Create Screening Submission Streaming Room' })
   @ApiResponse({
-    status: 200,
+    status: 201,
     description: 'Screening Submission Streaming Room Created',
-    type: PlatformScreeningSubmissionCreateStreamRoomResponseDto,
+    type: ApiResponseWrapper<PlatformScreeningSubmissionCreateStreamRoomResponseDto>,
   })
   @ApiResponse({
     status: 400,
@@ -353,7 +368,7 @@ export class PlatformScreeningSubmissionsController {
       );
     if (response) {
       return new ApiResponseWrapper(
-        HttpStatus.OK,
+        HttpStatus.CREATED,
         'Screening Submission Streaming Room Created',
         response,
       );

@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Get,
+  Header,
   HttpException,
   HttpStatus,
   Post,
@@ -63,6 +64,7 @@ export class PlatformOrganisationController {
   constructor(private organisationService: PlatformOrganisationService) {}
 
   @Post()
+  @Header('Content-Type', 'application/json')
   @ApiBearerAuth('JWT')
   @UseGuards(PlatformUserJwtGuard)
   @ApiOperation({ summary: 'Create a new Organisation' })
@@ -71,6 +73,7 @@ export class PlatformOrganisationController {
   @ApiResponse({
     status: 201,
     description: 'Organisation Created',
+    type: ApiResponseWrapper<boolean>,
   })
   @ApiResponse({
     status: 400,
@@ -79,7 +82,7 @@ export class PlatformOrganisationController {
   async createOrganisation(
     @Body() dto: CreatePlatformOrganisationDto,
     @UploadedFile() file: Express.Multer.File,
-  ) {
+  ): Promise<ApiResponseWrapper<boolean>> {
     const success = await this.organisationService.createOrganisation(
       file,
       dto,
@@ -89,7 +92,7 @@ export class PlatformOrganisationController {
       return new ApiResponseWrapper(
         HttpStatus.CREATED,
         'Organisation created successfully',
-        success,
+        true,
       );
     }
 
@@ -100,13 +103,14 @@ export class PlatformOrganisationController {
   }
 
   @Get()
+  @Header('Content-Type', 'application/json')
   @ApiOperation({ summary: 'Get Organisation by Id' })
   @UseGuards(PlatformUserJwtGuard)
   @ApiBearerAuth('JWT')
   @ApiResponse({
     status: 200,
     description: 'Organisation Found',
-    type: PlatformOrganisationResponseDto,
+    type: ApiResponseWrapper<PlatformOrganisationResponseDto>,
   })
   @ApiResponse({
     status: 400,
@@ -129,13 +133,14 @@ export class PlatformOrganisationController {
   }
 
   @Get('admin')
+  @Header('Content-Type', 'application/json')
   @ApiOperation({ summary: 'Get Organisations by Admin Id' })
   @UseGuards(PlatformUserJwtGuard)
   @ApiBearerAuth('JWT')
   @ApiResponse({
     status: 200,
     description: 'Organisations Found',
-    type: PlatformOrganisationsListResponseDto,
+    type: ApiResponseWrapper<PlatformOrganisationsListResponseDto>,
   })
   @ApiResponse({
     status: 400,
@@ -156,13 +161,14 @@ export class PlatformOrganisationController {
   }
 
   @Get('api-key')
+  @Header('Content-Type', 'application/json')
   @ApiOperation({ summary: 'Get Organisation API Key' })
   @UseGuards(PlatformUserJwtGuard)
   @ApiBearerAuth('JWT')
   @ApiResponse({
     status: 200,
     description: 'Organisation API Key Found',
-    type: GetPlatformOrganisationApiKeyResponseDto,
+    type: ApiResponseWrapper<GetPlatformOrganisationApiKeyResponseDto>,
   })
   @ApiResponse({
     status: 400,
@@ -189,6 +195,7 @@ export class PlatformOrganisationController {
   }
 
   @Get('billing')
+  @Header('Content-Type', 'application/json')
   @ApiOperation({ summary: 'Get Organisation Billing' })
   @UseGuards(PlatformUserJwtGuard)
   @UseGuards(PlatformOrgApiKeyGuard)
@@ -197,7 +204,7 @@ export class PlatformOrganisationController {
   @ApiResponse({
     status: 200,
     description: 'Organisation Billing Found',
-    type: GetOrganisationBillingViaOrgIdResponseDto,
+    type: ApiResponseWrapper<GetOrganisationBillingViaOrgIdResponseDto>,
   })
   @ApiResponse({
     status: 400,
@@ -224,6 +231,7 @@ export class PlatformOrganisationController {
   }
 
   @Post('billing/stripe/session')
+  @Header('Content-Type', 'application/json')
   @ApiOperation({
     summary: 'Create Organisation Billing Stripe Payment Session',
   })
@@ -234,7 +242,7 @@ export class PlatformOrganisationController {
   @ApiResponse({
     status: 201,
     description: 'Payment Session created successfully',
-    type: CreatePlatformOrganisationBillingStripeSessionResponseDto,
+    type: ApiResponseWrapper<CreatePlatformOrganisationBillingStripeSessionResponseDto>,
   })
   async createOrganisationBillingStripePaymentSession(
     @Body() dto: CreateOrganisationBillingStripePaymentSessionDto,
@@ -260,6 +268,7 @@ export class PlatformOrganisationController {
   }
 
   @Post('billing/stripe/payment/webhook')
+  @Header('Content-Type', 'application/json')
   @ApiOperation({
     summary: 'Create Organisation Billing Stripe Payment Webhook Handler',
   })
@@ -272,6 +281,7 @@ export class PlatformOrganisationController {
   }
 
   @Post('member')
+  @Header('Content-Type', 'application/json')
   @ApiOperation({ summary: "Create an Organisation's Member Status" })
   @UseGuards(PlatformUserJwtGuard)
   @UseGuards(PlatformOrgApiKeyGuard)
@@ -280,6 +290,7 @@ export class PlatformOrganisationController {
   @ApiResponse({
     status: 201,
     description: 'Member Status Created',
+    type: ApiResponseWrapper<boolean>,
   })
   async createOrganisationMemberStatus(
     @Body() dto: CreateOrganisationMemberStatusDto,
@@ -290,7 +301,7 @@ export class PlatformOrganisationController {
       return new ApiResponseWrapper(
         HttpStatus.CREATED,
         'Member Status created successfully',
-        success,
+        true,
       );
     } else {
       throw new HttpException(
@@ -301,6 +312,7 @@ export class PlatformOrganisationController {
   }
 
   @Post('member/get')
+  @Header('Content-Type', 'application/json')
   @ApiOperation({ summary: "Get an Organisation's Member Status" })
   @UseGuards(PlatformUserJwtGuard)
   @UseGuards(PlatformOrgApiKeyGuard)
@@ -309,7 +321,7 @@ export class PlatformOrganisationController {
   @ApiResponse({
     status: 200,
     description: 'Member Status Found',
-    type: GetOrganisationMemberStatusResponseDto,
+    type: ApiResponseWrapper<GetOrganisationMemberStatusResponseDto>,
   })
   @ApiResponse({
     status: 400,
@@ -335,6 +347,7 @@ export class PlatformOrganisationController {
   }
 
   @Get('member/getAll')
+  @Header('Content-Type', 'application/json')
   @ApiOperation({ summary: "Get all Organisation's Member Status" })
   @UseGuards(PlatformUserJwtGuard)
   @UseGuards(PlatformOrgApiKeyGuard)
@@ -343,7 +356,7 @@ export class PlatformOrganisationController {
   @ApiResponse({
     status: 200,
     description: 'Member Status Found',
-    type: GetAllOrganisationMemberStatusOfOrgListResponseDto,
+    type: ApiResponseWrapper<GetAllOrganisationMemberStatusOfOrgListResponseDto>,
   })
   async getAllOrganisationMemberStatus(
     @Req() req: Request,
@@ -367,13 +380,19 @@ export class PlatformOrganisationController {
   }
 
   @Put('member')
+  @Header('Content-Type', 'application/json')
   @ApiOperation({ summary: "Update an Organisation's Member Status" })
   @UseGuards(PlatformUserJwtGuard)
   @ApiBearerAuth('JWT')
   @ApiBasicAuth('X-API-KEY')
+  @ApiResponse({
+    status: 200,
+    description: 'Member Status Updated',
+    type: ApiResponseWrapper<boolean>,
+  })
   async updateOrganisationMemberStatus(
     @Body() dto: UpdateOrganisationMemberStatusDto,
-  ): Promise<ApiResponseWrapper<any>> {
+  ): Promise<ApiResponseWrapper<boolean>> {
     const success =
       await this.organisationService.updateOrganisationMemberStatus(dto);
 
@@ -381,7 +400,7 @@ export class PlatformOrganisationController {
       return new ApiResponseWrapper(
         HttpStatus.OK,
         'Member Status updated successfully',
-        success,
+        true,
       );
     } else {
       throw new HttpException(

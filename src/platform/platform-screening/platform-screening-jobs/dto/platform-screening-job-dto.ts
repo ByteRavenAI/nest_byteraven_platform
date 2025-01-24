@@ -87,7 +87,10 @@ export class PlatformScreeningJobResponseDto {
 
 export class PlatformScreeningJobListResponseDto {
   @IsArray()
-  @ApiProperty({ description: 'List of Screening Jobs' })
+  @ApiProperty({
+    description: 'List of Screening Jobs',
+    type: [PlatformScreeningJobResponseDto],
+  })
   @ValidateNested({ each: true })
   @Type(() => PlatformScreeningJobResponseDto)
   screeningJobs: PlatformScreeningJobResponseDto[];

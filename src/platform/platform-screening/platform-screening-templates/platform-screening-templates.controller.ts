@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Get,
+  Header,
   HttpException,
   HttpStatus,
   Post,
@@ -35,17 +36,19 @@ export class PlatformScreeningTemplatesController {
   ) {}
 
   @Post()
+  @Header('Content-Type', 'application/json')
   @UseGuards(PlatformOrgApiKeyGuard)
   @ApiSecurity('X-API-KEY')
   @ApiOperation({ summary: 'Create a new Screening Template' })
   @ApiResponse({
     status: 201,
     description: 'Screening Template Created',
+    type: ApiResponseWrapper<boolean>,
   })
   async createScreeningTemplate(
     @Req() req: Request,
     @Body() dto: CreateScreeningTemplateDto,
-  ): Promise<ApiResponseWrapper<any>> {
+  ): Promise<ApiResponseWrapper<boolean>> {
     const { orgId, orgAlias } = req.org as {
       orgId: string;
       orgAlias: string;
@@ -60,7 +63,7 @@ export class PlatformScreeningTemplatesController {
       return new ApiResponseWrapper(
         HttpStatus.CREATED,
         'Platform User created successfully',
-        success,
+        true,
       );
     } else {
       throw new HttpException(
@@ -71,13 +74,14 @@ export class PlatformScreeningTemplatesController {
   }
 
   @Get()
+  @Header('Content-Type', 'application/json')
   @ApiOperation({ summary: 'Get all Screening Templates of Organisation' })
   @UseGuards(PlatformOrgApiKeyGuard)
   @ApiSecurity('X-API-KEY')
   @ApiResponse({
     status: 200,
     description: 'Screening Templates Fetched',
-    type: GetAllPlatformScreeningTemplatesOfOrgResponseDto,
+    type: ApiResponseWrapper<GetAllPlatformScreeningTemplatesOfOrgResponseDto>,
   })
   async getScreeningTemplates(
     @Req() req: Request,
@@ -109,16 +113,18 @@ export class PlatformScreeningTemplatesController {
   }
 
   @Post('generateQuestions')
+  @Header('Content-Type', 'application/json')
   @ApiOperation({ summary: 'Generate Screening Template Questions' })
   @UseGuards(PlatformOrgApiKeyGuard)
   @ApiSecurity('X-API-KEY')
   @ApiResponse({
     status: 200,
     description: 'Screening Template Questions Generated',
+    type: ApiResponseWrapper<string[]>,
   })
   async generateScreeningTemplateQuestions(
     @Body() dto: GenerateScreeningTemplateQuestionsDto,
-  ): Promise<ApiResponseWrapper<any>> {
+  ): Promise<ApiResponseWrapper<string[]>> {
     const questions =
       await this.platformScreeningTemplatesService.generateScreeningTemplateQuestions(
         dto.jobTitle, // Pass the orgId here

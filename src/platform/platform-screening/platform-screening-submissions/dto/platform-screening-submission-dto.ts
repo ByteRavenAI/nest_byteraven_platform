@@ -291,7 +291,10 @@ export class PlatformScreeningSubmissionResponseDto {
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => ScreeningFormSubmissionQuestionDto)
-  @ApiProperty({ description: 'Chat' })
+  @ApiProperty({
+    description: 'Chat',
+    type: [ScreeningFormSubmissionQuestionDto],
+  })
   chat: ScreeningFormSubmissionQuestionDto[];
 
   @IsString()
@@ -299,7 +302,7 @@ export class PlatformScreeningSubmissionResponseDto {
   createdAt: string;
 
   @IsEnum(SubmissionStatusEnum)
-  @ApiProperty({ description: 'Status' })
+  @ApiProperty({ description: 'Status', type: 'string' })
   status: SubmissionStatusEnum;
 
   @IsArray()
@@ -320,7 +323,10 @@ export class PlatformScreeningSubmissionListResponseDto {
   @IsArray()
   @ValidateNested({ each: true })
   @Type(() => PlatformScreeningSubmissionResponseDto)
-  @ApiProperty({ description: 'Screening Submissions' })
+  @ApiProperty({
+    description: 'Screening Submissions',
+    type: [PlatformScreeningSubmissionResponseDto],
+  })
   screeningSubmissions: PlatformScreeningSubmissionResponseDto[];
 }
 

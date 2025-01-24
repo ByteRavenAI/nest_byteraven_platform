@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Get,
+  Header,
   HttpException,
   HttpStatus,
   Post,
@@ -37,13 +38,14 @@ export class PlatformScreeningJobsController {
   ) {}
 
   @Post()
+  @Header('Content-Type', 'application/json')
   @ApiOperation({ summary: 'Create a new Screening Job' })
   @UseGuards(PlatformOrgApiKeyGuard)
   @ApiSecurity('X-API-KEY')
   @ApiResponse({
     status: 201,
     description: 'Screening Job Created Successfully',
-    type: PlatformScreeningJobResponseDto,
+    type: ApiResponseWrapper<PlatformScreeningJobResponseDto>,
   })
   async createScreeningJob(
     @Req() req: Request,
@@ -73,13 +75,14 @@ export class PlatformScreeningJobsController {
   }
 
   @Get('org')
+  @Header('Content-Type', 'application/json')
   @ApiOperation({ summary: 'Get all Screening Jobs of Organisation' })
   @UseGuards(PlatformOrgApiKeyGuard)
   @ApiSecurity('X-API-KEY')
   @ApiResponse({
     status: 200,
     description: 'Screening Jobs of Organisation',
-    type: PlatformScreeningJobListResponseDto,
+    type: ApiResponseWrapper<PlatformScreeningJobListResponseDto>,
   })
   @ApiResponse({
     status: 404,
@@ -111,11 +114,12 @@ export class PlatformScreeningJobsController {
   }
 
   @Get('id')
+  @Header('Content-Type', 'application/json')
   @ApiOperation({ summary: 'Get Screening Job using Id' })
   @ApiResponse({
     status: 200,
     description: 'Screening Job Found',
-    type: PlatformScreeningJobResponseDto,
+    type: ApiResponseWrapper<PlatformScreeningJobResponseDto>,
   })
   @ApiResponse({
     status: 404,
